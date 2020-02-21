@@ -1,7 +1,14 @@
 
+digit   [0-9]
+letter_  [a-zA-Z_]
+
 relop   >|<|>=|<=|==|!=
 type    int|float
 %%
+
+{digit}+    { printf("INT\n"); }
+
+{letter_}[{letter_}|digit]+     { printf("ID\n";) }
 
 ";"         { printf("SEMI\n"); }
 ","         { printf("COMMA\n"); }
