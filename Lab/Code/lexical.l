@@ -9,15 +9,40 @@ float   ({digit}+\.{digit}+)|((({digit}+\.{digit}*)|({digit}*\.{digit}+))[eE][+-
 relop   >|<|>=|<=|==|!=
 type    int|float
 
-comment (\/\/.*\n)|(\/\*(.|\n)*\*\/)
+comment \/\/.*\n
+multicomment \/\*
 id      {letter_}({letter_}|{digit})*
 
-delimit " "|\n|\t
+delimit " "|\n|\t|\r
 %%
 
 {int}       { printf("INT\n"); }
 {float}     { printf("FLOAT\n"); }
 {comment}   { printf("Comment\n"); }
+{multicomment}   { 
+                int state = 0;
+                while(1) {
+                    char c = input();
+                    if(c == '\0')
+                        break;
+                    if(c == '*') {
+                        state = 1;
+                    } else if (c == '/') {
+                        if(state == 1) {
+                            state = 2;
+                            break;
+                        } else {
+                            state = 0;
+                        }
+                    } else {
+                        state = 0;
+                    }
+                }
+                if(state == 2)
+                    printf("Comment\n"); 
+                else
+                    printf("Error type A at Line %d: Unterminated comment \n", yylineno);
+                } 
 ";"         { printf("SEMI\n"); }
 ","         { printf("COMMA\n"); }
 "="         { printf("ASSIGNOP\n"); }
