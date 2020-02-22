@@ -8,4 +8,5 @@
 !/Code/syntax.y
 !/Code/Makefile
 
+/Test/*
 
