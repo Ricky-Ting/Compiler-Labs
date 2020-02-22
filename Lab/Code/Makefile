@@ -1,6 +1,10 @@
 # GNU make手册：http://www.gnu.org/software/make/manual/make.html
 # ************ 遇到不明白的地方请google以及阅读手册 *************
 
+
+# Test File
+TEST = test1.cmm
+
 # 编译器设定和编译选项
 CC = gcc
 FLEX = flex
@@ -43,4 +47,4 @@ clean:
 lex:
 	flex lexical.l
 	gcc main.c lex.yy.c -lfl -o scanner
-	./scanner ../Test/mytest.cmm
+	./scanner ../Test/$(TEST)

@@ -1,4 +1,5 @@
 
+%option yylineno
 digit   [0-9]
 letter_  [a-zA-Z_]
 
@@ -9,13 +10,13 @@ relop   >|<|>=|<=|==|!=
 type    int|float
 
 comment (\/\/.*\n)|(\/\*(.|\n)*\*\/)
-id      {letter_}[{letter_}|digit]+
+id      {letter_}({letter_}|{digit})*
 
+delimit " "|\n|\t
 %%
 
 {int}       { printf("INT\n"); }
 {float}     { printf("FLOAT\n"); }
-{id}        { printf("ID\n"); }
 {comment}   { printf("Comment\n"); }
 ";"         { printf("SEMI\n"); }
 ","         { printf("COMMA\n"); }
@@ -40,7 +41,11 @@ id      {letter_}[{letter_}|digit]+
 "if"        { printf("IF\n");}
 "else"      { printf("ELSE\n");}
 "while"     { printf("WHILE\n");}
-
+{id}        { printf("%s is ID\n", yytext); }
+{delimit}   {  }
+.           { 
+                printf("Error type A at Line %d: Mysterious characters \'%s\'\n", yylineno, yytext);
+            }
 
 %%
 
