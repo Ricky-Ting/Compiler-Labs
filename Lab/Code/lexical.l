@@ -2,14 +2,21 @@
 digit   [0-9]
 letter_  [a-zA-Z_]
 
+int     0|([1-9]{digit}*)|(0[0-7]+)|(0[xX][0-9A-Fa-f]+)
+float   ({digit}+\.{digit}+)|((({digit}+\.{digit}*)|({digit}*\.{digit}+))[eE][+-]?{digit}+)
+
 relop   >|<|>=|<=|==|!=
 type    int|float
+
+comment (\/\/.*\n)|(\/\*(.|\n)*\*\/)
+id      {letter_}[{letter_}|digit]+
+
 %%
 
-{digit}+    { printf("INT\n"); }
-
-{letter_}[{letter_}|digit]+     { printf("ID\n";) }
-
+{int}       { printf("INT\n"); }
+{float}     { printf("FLOAT\n"); }
+{id}        { printf("ID\n"); }
+{comment}   { printf("Comment\n"); }
 ";"         { printf("SEMI\n"); }
 ","         { printf("COMMA\n"); }
 "="         { printf("ASSIGNOP\n"); }
@@ -38,16 +45,6 @@ type    int|float
 %%
 
 
-int main(int argc, char** argv) {
-    if (argc> 1) {
-        if (!(yyin=fopen(argv[1], "r"))) {
-            perror(argv[1]);
-            return 1;
-        }
-    }
-    while (yylex() != 0);
-    return 0;
-}
 
 
 
