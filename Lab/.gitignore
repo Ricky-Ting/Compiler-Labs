@@ -7,6 +7,7 @@
 !/Code/lexical.l
 !/Code/syntax.y
 !/Code/Makefile
+!/Code/Makefile.backup
 
 /Test/*
 
