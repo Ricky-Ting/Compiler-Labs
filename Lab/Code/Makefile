@@ -40,3 +40,7 @@ clean:
 	rm -f $(OBJS) $(OBJS:.o=.d)
 	rm -f $(LFC) $(YFC) $(YFC:.c=.h)
 	rm -f *~
+lex:
+	flex lexical.l
+	gcc main.c lex.yy.c -lfl -o scanner
+	./scanner ../Test/mytest.cmm
