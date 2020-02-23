@@ -9,7 +9,7 @@ float   ({digit}+\.{digit}+)|((({digit}+\.{digit}*)|({digit}*\.{digit}+))[eE][+-
 relop   >|<|>=|<=|==|!=
 type    int|float
 
-comment \/\/.*\n
+comment \/\/.*
 multicomment \/\*
 id      {letter_}({letter_}|{digit})*
 
