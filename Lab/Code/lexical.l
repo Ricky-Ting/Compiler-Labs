@@ -54,6 +54,7 @@ delimit " "|\n|\t|\r
 "&&"        { printf("AND\n");}
 "||"        { printf("OR\n");}
 "."         { printf("DOT\n");}
+"!"         { printf("NOT\n"); }
 {type}      { printf("TYPE\n");}
 "("         { printf("LP\n");}
 ")"         { printf("RP\n");}
@@ -66,7 +67,7 @@ delimit " "|\n|\t|\r
 "if"        { printf("IF\n");}
 "else"      { printf("ELSE\n");}
 "while"     { printf("WHILE\n");}
-{id}        { printf("%s is ID\n", yytext); }
+{id}        { printf("ID\n"); }
 {delimit}   {  }
 .           { 
                 printf("Error type A at Line %d: Mysterious characters \'%s\'\n", yylineno, yytext);
