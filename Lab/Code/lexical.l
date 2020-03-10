@@ -9,6 +9,10 @@ letter_  [a-zA-Z_]
 int     0|([1-9]{digit}*)|(0[0-7]+)|(0[xX][0-9A-Fa-f]+)
 float   ({digit}+\.{digit}+)|((({digit}+\.{digit}*)|({digit}*\.{digit}+))[eE][+-]?{digit}+)
 
+oct_error 0[0-7]*[8-9a-zA-Z]+[0-9a-zA-Z]*
+/* hex_error 0[xX][0-9A-Fa-f]*[g-zG-Z]+[0-9a-zA-Z]* */
+float_error ({digit}+\.)|(\.{digit}+)|((({digit}+\.{digit}*)|({digit}*\.{digit}+))([eE][+-]?|[eE][+-]?{digit}+[a-zA-Z]+{digit}*))
+
 relop   >|<|>=|<=|==|!=
 type    int|float
 
@@ -71,6 +75,8 @@ delimit " "|\t|\r
 "if"        { return IF;}
 "else"      { return ELSE;}
 "while"     { return WHILE;}
+{oct_error} { printf("Error type A at Line %d: Invalid octal or hexadecimal number \'%s\'\n", yylineno, yytext); }
+{float_error} { printf("Error type A at Line %d: Invalid float number \'%s\'\n", yylineno, yytext); }
 {id}        { return ID; }
 {delimit}   {  }
 \n          { yycolumn = 1; }
