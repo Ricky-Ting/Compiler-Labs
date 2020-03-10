@@ -1,4 +1,6 @@
-
+%{
+    #include "syntax.tab.h"
+%}
 %option yylineno
 digit   [0-9]
 letter_  [a-zA-Z_]
@@ -14,11 +16,12 @@ multicomment \/\*
 id      {letter_}({letter_}|{digit})*
 
 delimit " "|\n|\t|\r
+
 %%
 
-{int}       { printf("INT\n"); }
-{float}     { printf("FLOAT\n"); }
-{comment}   { printf("Comment\n"); }
+{int}       { return INT; }
+{float}     { return FLOAT; }
+{comment}   {  }
 {multicomment}   { 
                 int state = 0;
                 while(1) {
@@ -39,43 +42,41 @@ delimit " "|\n|\t|\r
                     }
                 }
                 if(state == 2)
-                    printf("Comment\n"); 
+                    ; 
                 else
                     printf("Error type A at Line %d: Unterminated comment \n", yylineno);
                 } 
-";"         { printf("SEMI\n"); }
-","         { printf("COMMA\n"); }
-"="         { printf("ASSIGNOP\n"); }
-{relop}     { printf("RELOP\n"); }
-"+"         { printf("PLUS\n");}
-"-"         { printf("MINUS\n");}
-"*"         { printf("STAR\n");}
-"/"         { printf("DIV\n");}
-"&&"        { printf("AND\n");}
-"||"        { printf("OR\n");}
-"."         { printf("DOT\n");}
-"!"         { printf("NOT\n"); }
-{type}      { printf("TYPE\n");}
-"("         { printf("LP\n");}
-")"         { printf("RP\n");}
-"["         { printf("LB\n");}
-"]"         { printf("RB\n");}
-"{"         { printf("LC\n");}
-"}"         { printf("RC\n");}
-"struct"    { printf("STRUCT\n");}
-"return"    { printf("RETURN\n");}
-"if"        { printf("IF\n");}
-"else"      { printf("ELSE\n");}
-"while"     { printf("WHILE\n");}
-{id}        { printf("ID\n"); }
+";"         { return SEMI; }
+","         { return COMMA; }
+"="         { return ASSIGNOP; }
+{relop}     { return RELOP; }
+"+"         { return PLUS;}
+"-"         { return MINUS;}
+"*"         { return STAR;}
+"/"         { return DIV;}
+"&&"        { return AND;}
+"||"        { return OR;}
+"."         { return DOT;}
+"!"         { return NOT; }
+{type}      { return TYPE;}
+"("         { return LP;}
+")"         { return RP;}
+"["         { return LB;}
+"]"         { return RB;}
+"{"         { return LC;}
+"}"         { return RC;}
+"struct"    { return STRUCT;}
+"return"    { return RETURN;}
+"if"        { return IF;}
+"else"      { return ELSE;}
+"while"     { return WHILE;}
+{id}        { return ID; }
 {delimit}   {  }
 .           { 
                 printf("Error type A at Line %d: Mysterious characters \'%s\'\n", yylineno, yytext);
             }
 
 %%
-
-
 
 
 
