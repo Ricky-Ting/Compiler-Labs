@@ -1,4 +1,13 @@
 /* declared tokens */
+%locations
+%{
+    int yycolumn = 1;
+    #define YY_USER_ACTION \
+    yylloc.first_line = yylloc.last_line = yylineno; \
+    yylloc.first_column = yycolumn; \
+    yylloc.last_column = yycolumn + yyleng - 1; \
+    yycolumn += yyleng;
+%}
 
 %token INT FLOAT
 %token TYPE
@@ -9,6 +18,15 @@
 %token AND OR DOT NOT
 %token LP RP LB RB LC RC
 %token STRUCT RETURN IF ELSE WHILE
+
+%right ASSIGNOP
+%left OR 
+%left AND 
+%left RELOP
+%left PLUS MINUS
+%left STAR DIV 
+%right NOT
+%left LP RP LB RB DOT
 
 %%
 
@@ -41,11 +59,11 @@ StructSpecifier : STRUCT OptTag LC DefList RC
     | STRUCT OptTag
     ;
 
-OptTag : ID
+OptTag : ID 
     | 
     ;
 
-Tag : ID
+Tag : ID 
     ;
 
 /* Declarators */

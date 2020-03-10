@@ -1,3 +1,4 @@
+
 %{
     #include "syntax.tab.h"
 %}
@@ -15,7 +16,7 @@ comment \/\/.*
 multicomment \/\*
 id      {letter_}({letter_}|{digit})*
 
-delimit " "|\n|\t|\r
+delimit " "|\t|\r
 
 %%
 
@@ -72,6 +73,7 @@ delimit " "|\n|\t|\r
 "while"     { return WHILE;}
 {id}        { return ID; }
 {delimit}   {  }
+\n          { yycolumn = 1; }
 .           { 
                 printf("Error type A at Line %d: Mysterious characters \'%s\'\n", yylineno, yytext);
             }
