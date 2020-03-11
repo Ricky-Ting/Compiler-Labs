@@ -1,6 +1,12 @@
 
 %{
     #include "syntax.tab.h"
+    int yycolumn = 1;
+    #define YY_USER_ACTION \
+    yylloc.first_line = yylloc.last_line = yylineno; \
+    yylloc.first_column = yycolumn; \
+    yylloc.last_column = yycolumn + yyleng - 1; \
+    yycolumn += yyleng;
 %}
 %option yylineno
 digit   [0-9]
@@ -11,7 +17,7 @@ float   ({digit}+\.{digit}+)|((({digit}+\.{digit}*)|({digit}*\.{digit}+))[eE][+-
 
 oct_error 0[0-7]*[8-9a-zA-Z]+[0-9a-zA-Z]*
 /* hex_error 0[xX][0-9A-Fa-f]*[g-zG-Z]+[0-9a-zA-Z]* */
-float_error ({digit}+\.)|(\.{digit}+)|((({digit}+\.{digit}*)|({digit}*\.{digit}+))([eE][+-]?|[eE][+-]?{digit}+[a-zA-Z]+{digit}*))
+float_error ({digit}+\.)|(\.{digit}+)|((({digit}+\.{digit}*)|({digit}*\.{digit}+))([eE][+-]*|[eE][+-]?{digit}+[a-zA-Z]+{digit}*))
 
 relop   >|<|>=|<=|==|!=
 type    int|float
@@ -24,8 +30,8 @@ delimit " "|\t|\r
 
 %%
 
-{int}       { return INT; }
-{float}     { return FLOAT; }
+{int}       { yylval.type_int = atoi(yytext); return INT; }
+{float}     { yylval.type_float = atof(yytext); return FLOAT; }
 {comment}   {  }
 {multicomment}   { 
                 int state = 0;
@@ -63,7 +69,7 @@ delimit " "|\t|\r
 "||"        { return OR;}
 "."         { return DOT;}
 "!"         { return NOT; }
-{type}      { return TYPE;}
+{type}      { strcpy(yylval.type_char, yytext); return TYPE;}
 "("         { return LP;}
 ")"         { return RP;}
 "["         { return LB;}
@@ -77,7 +83,7 @@ delimit " "|\t|\r
 "while"     { return WHILE;}
 {oct_error} { printf("Error type A at Line %d: Invalid octal or hexadecimal number \'%s\'\n", yylineno, yytext); }
 {float_error} { printf("Error type A at Line %d: Invalid float number \'%s\'\n", yylineno, yytext); }
-{id}        { return ID; }
+{id}        { strcpy(yylval.type_char, yytext); return ID; }
 {delimit}   {  }
 \n          { yycolumn = 1; }
 .           { 

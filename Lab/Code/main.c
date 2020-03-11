@@ -3,7 +3,9 @@
 #include <stdlib.h>
 
 extern FILE* yyin;
-extern int yylex (void);
+extern int yylex(void);
+extern void yyrestart(FILE * input_file );
+
 
 int main(int argc, char** argv) {
     if (argc <= 1) return 1;
