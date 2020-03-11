@@ -30,12 +30,12 @@
 %nonassoc ELSE
 
 %right ASSIGNOP
-%left OR 
+%left OR
 %left AND 
 %left RELOP
-%left PLUS MINUS
+%left PLUS MINUS LOWER_THAN_NEG
 %left STAR DIV 
-%right NOT
+%right NOT NEG
 %left LP RP LB RB DOT
 
 %type <type_tree> Program ExtDefList ExtDef ExtDecList 
@@ -49,14 +49,14 @@
 /* High-level Definitions */
 
 Program : ExtDefList    { 
-                            $$ = newTreeNode("Program", NULL, yylloc.first_line);
+                            $$ = newTreeNode("Program", NULL, @$.first_line);
                             insertTreeNode($$, $1);
                             printTree($$, 0);
                         }
     ;
 
 ExtDefList : ExtDef ExtDefList  {
-                                    $$ = newTreeNode("ExtDefList", NULL, yylloc.first_line);
+                                    $$ = newTreeNode("ExtDefList", NULL, @$.first_line);
                                     insertTreeNode($$, $1);
                                     insertTreeNode($$, $2);
                                 }
@@ -64,18 +64,18 @@ ExtDefList : ExtDef ExtDefList  {
     ;
 
 ExtDef : Specifier ExtDecList SEMI  {
-                                        $$ = newTreeNode("ExtDef", NULL, yylloc.first_line);
+                                        $$ = newTreeNode("ExtDef", NULL, @$.first_line);
                                         insertTreeNode($$, $1);
                                         insertTreeNode($$, $2);
                                         insertTreeNode($$, newTreeNode("SEMI", NULL, 0));
                                     }
     | Specifier SEMI                {
-                                        $$ = newTreeNode("ExtDef", NULL, yylloc.first_line);
+                                        $$ = newTreeNode("ExtDef", NULL, @$.first_line);
                                         insertTreeNode($$, $1);
                                         insertTreeNode($$, newTreeNode("SEMI", NULL, 0));
                                     }
     | Specifier FunDec CompSt       {
-                                        $$ = newTreeNode("ExtDef", NULL, yylloc.first_line);
+                                        $$ = newTreeNode("ExtDef", NULL, @$.first_line);
                                         insertTreeNode($$, $1);
                                         insertTreeNode($$, $2);
                                         insertTreeNode($$, $3);
@@ -83,11 +83,11 @@ ExtDef : Specifier ExtDecList SEMI  {
     ;
 
 ExtDecList : VarDec                 {
-                                        $$ = newTreeNode("ExtDecList", NULL, yylloc.first_line);
+                                        $$ = newTreeNode("ExtDecList", NULL, @$.first_line);
                                         insertTreeNode($$, $1);
                                     }
     | VarDec COMMA ExtDecList       {
-                                        $$ = newTreeNode("ExtDecList", NULL, yylloc.first_line);
+                                        $$ = newTreeNode("ExtDecList", NULL, @$.first_line);
                                         insertTreeNode($$, $1);
                                         insertTreeNode($$, newTreeNode("COMMA", NULL, 0));
                                         insertTreeNode($$, $3);
@@ -98,17 +98,17 @@ ExtDecList : VarDec                 {
 /* Specifiers */
 
 Specifier : TYPE                    {
-                                        $$ = newTreeNode("Specifier", NULL, yylloc.first_line);
+                                        $$ = newTreeNode("Specifier", NULL, @$.first_line);
                                         insertTreeNode($$, newTreeNode("TYPE", $1, 0));
                                     }
     | StructSpecifier               {
-                                        $$ = newTreeNode("Specifier", NULL, yylloc.first_line);
+                                        $$ = newTreeNode("Specifier", NULL, @$.first_line);
                                         insertTreeNode($$,$1);
                                     }
     ;
 
 StructSpecifier : STRUCT OptTag LC DefList RC   {
-                                                    $$ = newTreeNode("StructSpecifier", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("StructSpecifier", NULL, @$.first_line);
                                                     insertTreeNode($$, newTreeNode("STRUCT", NULL, 0));
                                                     insertTreeNode($$, $2);
                                                     insertTreeNode($$, newTreeNode("LC", NULL, 0));
@@ -116,21 +116,21 @@ StructSpecifier : STRUCT OptTag LC DefList RC   {
                                                     insertTreeNode($$, newTreeNode("RC", NULL, 0));
                                                 }
     | STRUCT Tag                                {
-                                                    $$ = newTreeNode("StructSpecifier", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("StructSpecifier", NULL, @$.first_line);
                                                     insertTreeNode($$, newTreeNode("STRUCT", NULL, 0));
                                                     insertTreeNode($$, $2);
                                                 }
     ;
 
 OptTag : ID                                     {
-                                                    $$ = newTreeNode("StructSpecifier", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("StructSpecifier", NULL, @$.first_line);
                                                     insertTreeNode($$, newTreeNode("ID", $1, 0));
                                                 }
     |                                           { $$ = NULL; } 
     ;
 
 Tag : ID                                        {
-                                                    $$ = newTreeNode("Tag", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Tag", NULL, @$.first_line);
                                                     insertTreeNode($$, newTreeNode("ID", $1, 0));
                                                 }
     ;
@@ -138,11 +138,11 @@ Tag : ID                                        {
 /* Declarators */
 
 VarDec : ID                                     {
-                                                    $$ = newTreeNode("VarDec", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("VarDec", NULL, @$.first_line);
                                                     insertTreeNode($$, newTreeNode("ID", $1, 0));
                                                 }
     | VarDec LB INT RB                          {
-                                                    $$ = newTreeNode("VarDec", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("VarDec", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, newTreeNode("LB", NULL, 0));
                                                     insertTreeNode_INT($$, $3);
@@ -151,14 +151,14 @@ VarDec : ID                                     {
     ;
 
 FunDec : ID LP VarList RP                       {
-                                                    $$ = newTreeNode("FunDec", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("FunDec", NULL, @$.first_line);
                                                     insertTreeNode($$, newTreeNode("ID", $1, 0));
                                                     insertTreeNode($$, newTreeNode("LP", NULL, 0));
                                                     insertTreeNode($$, $3);
                                                     insertTreeNode($$, newTreeNode("RP", NULL, 0));
                                                 }
     | ID LP RP                                  {
-                                                    $$ = newTreeNode("FunDec", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("FunDec", NULL, @$.first_line);
                                                     insertTreeNode($$, newTreeNode("ID", $1, 0));
                                                     insertTreeNode($$, newTreeNode("LP", NULL, 0));
                                                     insertTreeNode($$, newTreeNode("RP", NULL, 0));
@@ -167,19 +167,19 @@ FunDec : ID LP VarList RP                       {
     ;
 
 VarList : ParamDec COMMA VarList                {
-                                                    $$ = newTreeNode("VarList", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("VarList", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, newTreeNode("COMMA", NULL, 0));
                                                     insertTreeNode($$, $3);
                                                 }
     | ParamDec                                  {
-                                                    $$ = newTreeNode("VarList", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("VarList", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                 }
     ;
 
 ParamDec : Specifier VarDec                     {
-                                                    $$ = newTreeNode("ParamDec", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("ParamDec", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, $2);
                                                 }
@@ -188,7 +188,7 @@ ParamDec : Specifier VarDec                     {
 /* Statements */
 
 CompSt : LC DefList StmtList RC                 {
-                                                    $$ = newTreeNode("CompSt", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("CompSt", NULL, @$.first_line);
                                                     insertTreeNode($$, newTreeNode("LC", NULL, 0));
                                                     insertTreeNode($$, $2);
                                                     insertTreeNode($$, $3);
@@ -196,7 +196,7 @@ CompSt : LC DefList StmtList RC                 {
                                                 }
 
 StmtList : Stmt StmtList                        {
-                                                    $$ = newTreeNode("StmtList", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("StmtList", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, $2);
                                                 }
@@ -204,22 +204,22 @@ StmtList : Stmt StmtList                        {
     ;
 
 Stmt : Exp SEMI                                 {
-                                                    $$ = newTreeNode("Stmt", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Stmt", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, newTreeNode("SEMI", NULL, 0));
                                                 }
     | CompSt                                    {
-                                                    $$ = newTreeNode("Stmt", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Stmt", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                 }
     | RETURN Exp SEMI                           {
-                                                    $$ = newTreeNode("Stmt", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Stmt", NULL, @$.first_line);
                                                     insertTreeNode($$, newTreeNode("RETURN", NULL, 0));
                                                     insertTreeNode($$, $2);
                                                     insertTreeNode($$, newTreeNode("SEMI", NULL, 0));
                                                 }
     | IF LP Exp RP Stmt %prec LOWER_THAN_ELSE   {
-                                                    $$ = newTreeNode("Stmt", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Stmt", NULL, @$.first_line);
                                                     insertTreeNode($$, newTreeNode("IF", NULL, 0));
                                                     insertTreeNode($$, newTreeNode("LP", NULL, 0));
                                                     insertTreeNode($$, $3);
@@ -227,7 +227,7 @@ Stmt : Exp SEMI                                 {
                                                     insertTreeNode($$, $5);
                                                 }
     | IF LP Exp RP Stmt ELSE Stmt               {
-                                                    $$ = newTreeNode("Stmt", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Stmt", NULL, @$.first_line);
                                                     insertTreeNode($$, newTreeNode("IF", NULL, 0));
                                                     insertTreeNode($$, newTreeNode("LP", NULL, 0));
                                                     insertTreeNode($$, $3);
@@ -237,7 +237,7 @@ Stmt : Exp SEMI                                 {
                                                     insertTreeNode($$, $7);
                                                 }
     | WHILE LP Exp RP Stmt                      {
-                                                    $$ = newTreeNode("Stmt", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Stmt", NULL, @$.first_line);
                                                     insertTreeNode($$, newTreeNode("WHILE", NULL, 0));
                                                     insertTreeNode($$, newTreeNode("LP", NULL, 0));
                                                     insertTreeNode($$, $3);
@@ -248,7 +248,7 @@ Stmt : Exp SEMI                                 {
 /* Local Definitions */
 
 DefList : Def DefList                           {
-                                                    $$ = newTreeNode("DefList", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("DefList", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, $2);
                                                 }
@@ -256,7 +256,7 @@ DefList : Def DefList                           {
     ;
 
 Def : Specifier DecList SEMI                    {
-                                                    $$ = newTreeNode("Def", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Def", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, $2);
                                                     insertTreeNode($$, newTreeNode("SEMI", NULL, 0));
@@ -264,11 +264,11 @@ Def : Specifier DecList SEMI                    {
     ;
 
 DecList : Dec                                   {
-                                                    $$ = newTreeNode("DecList", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("DecList", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                 }
     | Dec COMMA DecList                         {
-                                                    $$ = newTreeNode("DefList", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("DefList", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, newTreeNode("COMMA", NULL, 0));
                                                     insertTreeNode($$, $3);
@@ -276,11 +276,11 @@ DecList : Dec                                   {
     ;
 
 Dec : VarDec                                    {
-                                                    $$ = newTreeNode("Dec", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Dec", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                 }
     | VarDec ASSIGNOP Exp                       {
-                                                    $$ = newTreeNode("Dec", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Dec", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, newTreeNode("ASSIGNOP", NULL, 0));
                                                     insertTreeNode($$, $3);
@@ -290,117 +290,117 @@ Dec : VarDec                                    {
 /* Expressions */
 
 Exp : Exp ASSIGNOP Exp                          {
-                                                    $$ = newTreeNode("Exp", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, newTreeNode("ASSIGNOP", NULL, 0));
                                                     insertTreeNode($$, $3);
                                                 }
     | Exp AND Exp                               {
-                                                    $$ = newTreeNode("Exp", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, newTreeNode("AND", NULL, 0));
                                                     insertTreeNode($$, $3);
                                                 }
     | Exp OR Exp                                {
-                                                    $$ = newTreeNode("Exp", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, newTreeNode("OR", NULL, 0));
                                                     insertTreeNode($$, $3);
                                                 }
     | Exp RELOP Exp                             {
-                                                    $$ = newTreeNode("Exp", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, newTreeNode("RELOP", NULL, 0));
                                                     insertTreeNode($$, $3);
                                                 }
     | Exp PLUS Exp                              {
-                                                    $$ = newTreeNode("Exp", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, newTreeNode("PLUS", NULL, 0));
                                                     insertTreeNode($$, $3);
                                                 }
-    | Exp MINUS Exp                             {
-                                                    $$ = newTreeNode("Exp", NULL, yylloc.first_line);
+    | Exp MINUS Exp          %prec LOWER_THAN_NEG             {
+                                                    $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, newTreeNode("MINUS", NULL, 0));
                                                     insertTreeNode($$, $3);
                                                 }
     | Exp STAR Exp                              {
-                                                    $$ = newTreeNode("Exp", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, newTreeNode("STAR", NULL, 0));
                                                     insertTreeNode($$, $3);
                                                 }
     | Exp DIV Exp                               {
-                                                    $$ = newTreeNode("Exp", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, newTreeNode("DIV", NULL, 0));
                                                     insertTreeNode($$, $3);
                                                 }
     | LP Exp RP                                 {
-                                                    $$ = newTreeNode("Exp", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode($$, newTreeNode("LP", NULL, 0));
                                                     insertTreeNode($$, $2);
                                                     insertTreeNode($$, newTreeNode("RP", NULL, 0));
                                                 }
-    | MINUS Exp                                 {
-                                                    $$ = newTreeNode("Exp", NULL, yylloc.first_line);
+    | MINUS Exp     %prec NEG                    {
+                                                    $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode($$, newTreeNode("MINUS", NULL, 0));
                                                     insertTreeNode($$, $2);
                                                 }
     | NOT Exp                                   {
-                                                    $$ = newTreeNode("Exp", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode($$, newTreeNode("NOT", NULL, 0));
                                                     insertTreeNode($$, $2);
                                                 }
     | ID LP Args RP                             {
-                                                    $$ = newTreeNode("Exp", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode($$, newTreeNode("ID", $1, 0));
                                                     insertTreeNode($$, newTreeNode("LP", NULL, 0));
                                                     insertTreeNode($$, $3);
                                                     insertTreeNode($$, newTreeNode("RP", NULL, 0));
                                                 }
     | ID LP RP                                  {
-                                                    $$ = newTreeNode("Exp", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode($$, newTreeNode("ID", $1, 0));
                                                     insertTreeNode($$, newTreeNode("LP", NULL, 0));
                                                     insertTreeNode($$, newTreeNode("RP", NULL, 0));
                                                 }
     | Exp LB Exp RB                             {
-                                                    $$ = newTreeNode("Exp", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, newTreeNode("LB", NULL, 0));
                                                     insertTreeNode($$, $3);
                                                     insertTreeNode($$, newTreeNode("RB", NULL, 0));
                                                 }
     | Exp DOT ID                                {
-                                                    $$ = newTreeNode("Exp", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, newTreeNode("DOT", NULL, 0));
                                                     insertTreeNode($$, newTreeNode("ID", $3, 0));
                                                 }
     | ID                                        {
-                                                    $$ = newTreeNode("Exp", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode($$, newTreeNode("ID", $1, 0));
                                                 }
     | INT                                       {
-                                                    $$ = newTreeNode("Exp", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode_INT($$, $1);
                                                 }
     | FLOAT                                     {
-                                                    $$ = newTreeNode("Exp", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode_FLOAT($$, $1);
                                                 }
     ;
 
 Args : Exp COMMA Args                           {
-                                                    $$ = newTreeNode((char*)"Args", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode((char*)"Args", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, newTreeNode("COMMA", NULL, 0));
                                                     insertTreeNode($$, $3);
                                                 }
     | Exp                                       {
-                                                    $$ = newTreeNode("Args", NULL, yylloc.first_line);
+                                                    $$ = newTreeNode("Args", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                 }
     ;

@@ -54,11 +54,11 @@ void printTree(TreeNode_t* root, int space) {
         printf("%s (%d)\n", root->Tree_token, root->Tree_lineno);
     } else {
         if(strcmp(root->Tree_token, "INT") == 0) {
-            printf("%s %d\n", root->Tree_token, root->val_INT);
+            printf("%s: %d\n", root->Tree_token, root->val_INT);
         } else if(strcmp(root->Tree_token, "FLOAT") == 0) {
-            printf("%s %f\n", root->Tree_token, root->val_FLOAT);
+            printf("%s: %f\n", root->Tree_token, root->val_FLOAT);
         } else if(strcmp(root->Tree_token, "TYPE") == 0 || strcmp(root->Tree_token, "ID") == 0) {
-            printf("%s %s\n", root->Tree_token, root->Tree_val);
+            printf("%s: %s\n", root->Tree_token, root->Tree_val);
         } else {
             printf("%s\n", root->Tree_token);
         }
