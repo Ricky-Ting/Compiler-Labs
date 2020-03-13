@@ -49,7 +49,10 @@
 /* High-level Definitions */
 
 Program : ExtDefList    { 
-                            $$ = newTreeNode("Program", NULL, @$.first_line);
+                            if ($1 != NULL)
+                                $$ = newTreeNode("Program", NULL, @$.first_line);
+                            else 
+                                $$ = newTreeNode("Program", NULL, yylloc.last_line);
                             insertTreeNode($$, $1);
                             printTree($$, 0);
                         }
