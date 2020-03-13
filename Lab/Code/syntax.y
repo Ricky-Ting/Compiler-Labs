@@ -200,6 +200,8 @@ CompSt : LC DefList StmtList RC                 {
                                                     insertTreeNode($$, $3);
                                                     insertTreeNode($$, newTreeNode("RC", NULL, 0));
                                                 }
+        | error RC {$$ = NULL;}
+        ;
 
 StmtList : Stmt StmtList                        {
                                                     $$ = newTreeNode("StmtList", NULL, @$.first_line);
@@ -251,7 +253,7 @@ Stmt : Exp SEMI                                 {
                                                     insertTreeNode($$, $5);
                                                 }
     | Exp error SEMI { $$ = NULL; }
-    | error SEMI { printf("Here\n"); $$ = NULL; }
+    | error SEMI {  $$ = NULL; }
 
 /* Local Definitions */
 
@@ -401,6 +403,7 @@ Exp : Exp ASSIGNOP Exp                          {
                                                     $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode_FLOAT($$, $1);
                                                 }
+    | error RP {$$ = NULL;}
     ;
 
 Args : Exp COMMA Args                           {
