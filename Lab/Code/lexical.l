@@ -30,7 +30,7 @@ delimit " "|\t|\r
 
 %%
 
-{int}       { yylval.type_int = atoi(yytext); return INT; }
+{int}       { yylval.type_int = strtol(yytext, NULL, 0); return INT; }
 {float}     { yylval.type_float = atof(yytext); return FLOAT; }
 {comment}   {  }
 {multicomment}   { 
@@ -55,7 +55,7 @@ delimit " "|\t|\r
                 if(state == 2)
                     ; 
                 else
-                    printf("Error type A at Line %d: Unterminated comment \n", yylineno);
+                    printf("Error type A at Line %d: Unterminated comment. \n", yylineno);
                 } 
 ";"         { return SEMI; }
 ","         { return COMMA; }
@@ -70,10 +70,17 @@ delimit " "|\t|\r
 "."         { return DOT;}
 "!"         { return NOT; }
 {type}      { strcpy(yylval.type_char, yytext); return TYPE;}
-"("         { return LP;}
+"("         { 
+                //printf("LP\n");
+                return LP;
+            }
 ")"         { return RP;}
-"["         { return LB;}
-"]"         { return RB;}
+"["         { //printf("LB\n"); 
+                return LB;
+            }
+"]"         { //printf("RB\n"); 
+                return RB;
+            }
 "{"         { return LC;}
 "}"         { return RC;}
 "struct"    { return STRUCT;}
@@ -81,13 +88,17 @@ delimit " "|\t|\r
 "if"        { return IF;}
 "else"      { return ELSE;}
 "while"     { return WHILE;}
-{oct_error} { printf("Error type A at Line %d: Invalid octal or hexadecimal number \'%s\'\n", yylineno, yytext); }
-{float_error} { printf("Error type A at Line %d: Invalid float number \'%s\'\n", yylineno, yytext); }
-{id}        { strcpy(yylval.type_char, yytext); return ID; }
+{oct_error} { printf("Error type A at Line %d: Invalid octal or hexadecimal number \'%s\'.\n", yylineno, yytext); }
+{float_error} { printf("Error type A at Line %d: Invalid float number \'%s\'.\n", yylineno, yytext); }
+{id}        {   
+                //printf("%s\n", yytext);
+                strcpy(yylval.type_char, yytext); 
+                return ID; 
+            }
 {delimit}   {  }
 \n          { yycolumn = 1; }
 .           { 
-                printf("Error type A at Line %d: Mysterious characters \'%s\'\n", yylineno, yytext);
+                printf("Error type A at Line %d: Mysterious characters \'%s\'.\n", yylineno, yytext);
             }
 
 %%

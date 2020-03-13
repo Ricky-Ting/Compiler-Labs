@@ -3,8 +3,11 @@
 %{
     #include "Tree.h"
     #include "lex.yy.c" 
+    int error_num = 0;
+    TreeNode_t* root = NULL;
     void yyerror(char *msg) {
-        fprintf(stderr, "error: %s\n", msg);
+        error_num++;
+        fprintf(stderr, "Error type B at Line %d: %s.\n", yylloc.first_line, msg);
     }
 %}
 
@@ -48,13 +51,13 @@
 
 /* High-level Definitions */
 
-Program : ExtDefList    { 
+Program : ExtDefList     { 
                             if ($1 != NULL)
                                 $$ = newTreeNode("Program", NULL, @$.first_line);
                             else 
                                 $$ = newTreeNode("Program", NULL, yylloc.last_line);
                             insertTreeNode($$, $1);
-                            printTree($$, 0);
+                            root = $$;
                         }
     ;
 
@@ -126,7 +129,7 @@ StructSpecifier : STRUCT OptTag LC DefList RC   {
     ;
 
 OptTag : ID                                     {
-                                                    $$ = newTreeNode("StructSpecifier", NULL, @$.first_line);
+                                                    $$ = newTreeNode("OptTag", NULL, @$.first_line);
                                                     insertTreeNode($$, newTreeNode("ID", $1, 0));
                                                 }
     |                                           { $$ = NULL; } 
@@ -271,7 +274,7 @@ DecList : Dec                                   {
                                                     insertTreeNode($$, $1);
                                                 }
     | Dec COMMA DecList                         {
-                                                    $$ = newTreeNode("DefList", NULL, @$.first_line);
+                                                    $$ = newTreeNode("DecList", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, newTreeNode("COMMA", NULL, 0));
                                                     insertTreeNode($$, $3);
@@ -413,5 +416,8 @@ Args : Exp COMMA Args                           {
 
 %% 
 
-
+void printAST() {
+    if(error_num == 0)
+        printTree(root, 0);
+}
 
