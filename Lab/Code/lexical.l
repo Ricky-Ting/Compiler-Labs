@@ -2,6 +2,7 @@
 %{
     #include "syntax.tab.h"
     int yycolumn = 1;
+    int error_num = 0;
     #define YY_USER_ACTION \
     yylloc.first_line = yylloc.last_line = yylineno; \
     yylloc.first_column = yycolumn; \
@@ -54,9 +55,12 @@ delimit " "|\t|\r
                 }
                 if(state == 2)
                     ; 
-                else
-                    printf("Error type A at Line %d: Unterminated comment. \n", yylineno);
-                } 
+                else {
+                    error_num++;
+                    //printf("Error type A at Line %d: Unterminated comment. \n", yylineno);
+                    fprintf(stderr, "Error type A at Line %d: Unterminated comment. \n", yylineno);
+                }
+            } 
 ";"         { return SEMI; }
 ","         { return COMMA; }
 "="         { return ASSIGNOP; }
@@ -88,17 +92,24 @@ delimit " "|\t|\r
 "if"        { return IF;}
 "else"      { return ELSE;}
 "while"     { return WHILE;}
-{oct_error} { printf("Error type A at Line %d: Invalid octal or hexadecimal number \'%s\'.\n", yylineno, yytext); }
-{float_error} { printf("Error type A at Line %d: Invalid float number \'%s\'.\n", yylineno, yytext); }
+{oct_error} {   
+                error_num++;
+                //printf("Error type A at Line %d: Invalid octal or hexadecimal number \'%s\'.\n", yylineno, yytext); 
+                fprintf(stderr, "Error type A at Line %d: Invalid octal or hexadecimal number \'%s\'.\n", yylineno, yytext); }
+{float_error} { 
+                error_num++;
+                //printf("Error type A at Line %d: Invalid float number \'%s\'.\n", yylineno, yytext); 
+                fprintf(stderr, "Error type A at Line %d: Invalid float number \'%s\'.\n", yylineno, yytext); }
 {id}        {   
-                //printf("%s\n", yytext);
                 strcpy(yylval.type_char, yytext); 
                 return ID; 
             }
 {delimit}   {  }
 \n          { yycolumn = 1; }
 .           { 
-                printf("Error type A at Line %d: Mysterious characters \'%s\'.\n", yylineno, yytext);
+                error_num++;
+                //printf("Error type A at Line %d: Mysterious characters \'%s\'.\n", yylineno, yytext);
+                fprintf(stderr, "Error type A at Line %d: Mysterious characters \'%s\'.\n", yylineno, yytext);
             }
 
 %%

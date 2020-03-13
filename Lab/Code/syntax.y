@@ -3,7 +3,7 @@
 %{
     #include "Tree.h"
     #include "lex.yy.c" 
-    int error_num = 0;
+    
     TreeNode_t* root = NULL;
     void yyerror(char *msg) {
         error_num++;
@@ -250,6 +250,8 @@ Stmt : Exp SEMI                                 {
                                                     insertTreeNode($$, newTreeNode("RP", NULL, 0));
                                                     insertTreeNode($$, $5);
                                                 }
+    | Exp error SEMI { $$ = NULL; }
+    | error SEMI { printf("Here\n"); $$ = NULL; }
 
 /* Local Definitions */
 
@@ -267,6 +269,7 @@ Def : Specifier DecList SEMI                    {
                                                     insertTreeNode($$, $2);
                                                     insertTreeNode($$, newTreeNode("SEMI", NULL, 0));
                                                 }
+    | Specifier DecList error SEMI {$$ = NULL;}
     ;
 
 DecList : Dec                                   {
@@ -291,6 +294,7 @@ Dec : VarDec                                    {
                                                     insertTreeNode($$, newTreeNode("ASSIGNOP", NULL, 0));
                                                     insertTreeNode($$, $3);
                                                 }
+    | VarDec ASSIGNOP error {$$ = NULL;}
     ;
 
 /* Expressions */
