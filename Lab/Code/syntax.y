@@ -86,6 +86,7 @@ ExtDef : Specifier ExtDecList SEMI  {
                                         insertTreeNode($$, $2);
                                         insertTreeNode($$, $3);
                                     }
+    | error SEMI {$$ = NULL;}
     ;
 
 ExtDecList : VarDec                 {
@@ -170,6 +171,7 @@ FunDec : ID LP VarList RP                       {
                                                     insertTreeNode($$, newTreeNode("RP", NULL, 0));
 
                                                 }
+    | ID LP error RP {$$ = NULL;}
     ;
 
 VarList : ParamDec COMMA VarList                {
@@ -271,7 +273,7 @@ Def : Specifier DecList SEMI                    {
                                                     insertTreeNode($$, $2);
                                                     insertTreeNode($$, newTreeNode("SEMI", NULL, 0));
                                                 }
-    | Specifier DecList error SEMI {$$ = NULL;}
+    | Specifier error SEMI { $$ = NULL;}
     ;
 
 DecList : Dec                                   {

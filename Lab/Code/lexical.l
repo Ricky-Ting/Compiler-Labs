@@ -16,7 +16,7 @@ letter_  [a-zA-Z_]
 int     0|([1-9]{digit}*)|(0[0-7]+)|(0[xX][0-9A-Fa-f]+)
 float   ({digit}+\.{digit}+)|((({digit}+\.{digit}*)|({digit}*\.{digit}+))[eE][+-]?{digit}+)
 
-oct_error 0[0-9a-zA-Z]
+oct_error 0[0-9a-zA-Z]+
 /* hex_error 0[xX][0-9A-Fa-f]*[g-zG-Z]+[0-9a-zA-Z]* */
 float_error ({digit}+\.)|(\.{digit}+)|((({digit}+\.{digit}*)|({digit}*\.{digit}+))([eE][+-]*|[eE][+-]?{digit}+[a-zA-Z]+{digit}*))
 
