@@ -87,6 +87,7 @@ ExtDef : Specifier ExtDecList SEMI  {
                                         insertTreeNode($$, $3);
                                     }
     | error SEMI {$$ = NULL;}
+    | Specifier error {$$ = NULL;}
     ;
 
 ExtDecList : VarDec                 {
@@ -405,7 +406,7 @@ Exp : Exp ASSIGNOP Exp                          {
                                                     $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode_FLOAT($$, $1);
                                                 }
-    | error RP {$$ = NULL;}
+    | ID LP error RP {$$ = NULL;}
     ;
 
 Args : Exp COMMA Args                           {

@@ -57,7 +57,6 @@ delimit " "|\t|\r
                     ; 
                 else {
                     error_num++;
-                    //printf("Error type A at Line %d: Unterminated comment. \n", yylineno);
                     fprintf(stderr, "Error type A at Line %d: Unterminated comment. \n", yylineno);
                 }
             } 
@@ -94,11 +93,9 @@ delimit " "|\t|\r
 "while"     { return WHILE;}
 {oct_error} {   
                 error_num++;
-                //printf("Error type A at Line %d: Invalid octal or hexadecimal number \'%s\'.\n", yylineno, yytext); 
                 fprintf(stderr, "Error type A at Line %d: Invalid octal or hexadecimal number \'%s\'.\n", yylineno, yytext); }
 {float_error} { 
                 error_num++;
-                //printf("Error type A at Line %d: Invalid float number \'%s\'.\n", yylineno, yytext); 
                 fprintf(stderr, "Error type A at Line %d: Invalid float number \'%s\'.\n", yylineno, yytext); }
 {id}        {   
                 strcpy(yylval.type_char, yytext); 
@@ -108,7 +105,7 @@ delimit " "|\t|\r
 \n          { yycolumn = 1; }
 .           { 
                 error_num++;
-                //printf("Error type A at Line %d: Mysterious characters \'%s\'.\n", yylineno, yytext);
+                
                 fprintf(stderr, "Error type A at Line %d: Mysterious characters \'%s\'.\n", yylineno, yytext);
             }
 
