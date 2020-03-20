@@ -31,8 +31,8 @@ delimit " "|\t|\r
 
 %%
 
-{int}       { yylval.type_int = strtol(yytext, NULL, 0); return INT; }
-{float}     { yylval.type_float = atof(yytext); return FLOAT; }
+{int}       { yylval.type_uint = strtol(yytext, NULL, 0); return INT; }
+{float}     { yylval.type_float = strtof(yytext, NULL); return FLOAT; }
 {comment}   {  }
 {multicomment}   { 
                 int state = 0;
@@ -57,7 +57,7 @@ delimit " "|\t|\r
                     ; 
                 else {
                     error_num++;
-                    fprintf(stderr, "Error type A at Line %d: Unterminated comment. \n", yylineno);
+                    fprintf(stderr, "Error type A at Line %d: Unterminated comment.\n", yylineno);
                 }
             } 
 ";"         { return SEMI; }

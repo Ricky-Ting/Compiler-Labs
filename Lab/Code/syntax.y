@@ -12,13 +12,13 @@
 %}
 
 %union {
-    int type_int;
+    unsigned type_uint;
     float type_float;
     char type_char[55];
     TreeNode_t* type_tree;
 }
 
-%token <type_int>INT 
+%token <type_uint>INT 
 %token <type_float> FLOAT 
 %token <type_char> TYPE
 %token <type_char> ID
@@ -153,7 +153,7 @@ VarDec : ID                                     {
                                                     $$ = newTreeNode("VarDec", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
                                                     insertTreeNode($$, newTreeNode("LB", NULL, 0));
-                                                    insertTreeNode_INT($$, $3);
+                                                    insertTreeNode_UINT($$, $3);
                                                     insertTreeNode($$, newTreeNode("RB", NULL, 0));
                                                 }
     ;
@@ -400,7 +400,7 @@ Exp : Exp ASSIGNOP Exp                          {
                                                 }
     | INT                                       {
                                                     $$ = newTreeNode("Exp", NULL, @$.first_line);
-                                                    insertTreeNode_INT($$, $1);
+                                                    insertTreeNode_UINT($$, $1);
                                                 }
     | FLOAT                                     {
                                                     $$ = newTreeNode("Exp", NULL, @$.first_line);

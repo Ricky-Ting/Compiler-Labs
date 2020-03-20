@@ -29,9 +29,9 @@ void insertTreeNode(TreeNode_t* root, TreeNode_t* child) {
     return;
 }
 
-void insertTreeNode_INT(TreeNode_t* root, int val) {
+void insertTreeNode_UINT(TreeNode_t* root, unsigned int val) {
     TreeNode_t* node = newTreeNode("INT", NULL,  0);
-    node->val_INT = val;
+    node->val_UINT = val;
     root->Tree_child[root->num_child++] = node;
     return;
 }
@@ -54,7 +54,7 @@ void printTree(TreeNode_t* root, int space) {
         printf("%s (%d)\n", root->Tree_token, root->Tree_lineno);
     } else {
         if(strcmp(root->Tree_token, "INT") == 0) {
-            printf("%s: %d\n", root->Tree_token, root->val_INT);
+            printf("%s: %u\n", root->Tree_token, root->val_UINT);
         } else if(strcmp(root->Tree_token, "FLOAT") == 0) {
             printf("%s: %f\n", root->Tree_token, root->val_FLOAT);
         } else if(strcmp(root->Tree_token, "TYPE") == 0 || strcmp(root->Tree_token, "ID") == 0) {
