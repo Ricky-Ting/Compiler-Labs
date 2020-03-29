@@ -1,3 +1,6 @@
+
+#ifndef TREE_H
+#define TREE_H
 struct TreeNode {
     char Tree_token[55];
     char Tree_val[55];
@@ -16,3 +19,4 @@ void insertTreeNode_UINT(TreeNode_t* root, unsigned int val);
 
 void insertTreeNode_FLOAT(TreeNode_t* root, double val);
 void printTree(TreeNode_t* root, int space);
+#endif
