@@ -1,6 +1,8 @@
 #ifndef SYMBOL_H
 #define SYMBOL_H
 
+#define HASH_TABLE_SZ 0x3fff
+
 typedef struct Type_* Type;
 typedef struct Type_ Type_t;
 
@@ -30,7 +32,9 @@ struct FieldList_ {
 
 struct Symbol_ {
     char name[55];
-    Type type;   
+    Type type;
+    Symbol prev;
+    Symbol next;   
 };
 
 
