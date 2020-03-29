@@ -13,8 +13,10 @@ typedef struct FieldList_ FieldList__t;
 typedef struct Symbol_* Symbol;
 typedef struct Symbol_ Symbol_t;
 
+//typedef FieldList TypeList;
+
 struct Type_ {
-    enum { BASIC, ARRAY, STRUCTURE } kind;
+    enum { BASIC, ARRAY, STRUCTURE, FUNC} kind;
     union {
         // 基本类型
         int basic;
@@ -22,6 +24,8 @@ struct Type_ {
         struct { Type elem; int size; } array;
         // 结构体类型信息是一个链表
         FieldList structure;
+        // 函数类型信息由返回值类型和参数类型构成
+        struct { Type ret; FieldList params;} func;
     } u;
 };
 
@@ -30,6 +34,7 @@ struct FieldList_ {
     Type type; // 域的类型
     FieldList tail; // 下一个域
 };
+
 
 struct Symbol_ {
     char name[55];
