@@ -2,6 +2,7 @@
 #define SYMBOL_H
 
 #define HASH_TABLE_SZ 0x3fff
+#define MAX_RECUR 10
 
 typedef struct Type_* Type;
 typedef struct Type_ Type_t;
@@ -34,7 +35,9 @@ struct Symbol_ {
     char name[55];
     Type type;
     Symbol prev;
-    Symbol next;   
+    Symbol next;
+    Symbol area_prev;
+    Symbol area_next;
 };
 
 
