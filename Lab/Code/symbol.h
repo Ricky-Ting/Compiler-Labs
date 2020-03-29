@@ -1,3 +1,5 @@
+#ifndef SYMBOL_H
+#define SYMBOL_H
 typedef struct Type_* Type;
 typedef struct FieldList_* FieldList;
 typedef struct Type_ Type_t;
@@ -20,3 +22,4 @@ struct FieldList_ {
     Type type; // 域的类型
     FieldList tail; // 下一个域
 };
+#endif
