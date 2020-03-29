@@ -1,9 +1,14 @@
 #ifndef SYMBOL_H
 #define SYMBOL_H
+
 typedef struct Type_* Type;
-typedef struct FieldList_* FieldList;
 typedef struct Type_ Type_t;
+
+typedef struct FieldList_* FieldList;
 typedef struct FieldList_ FieldList__t;
+
+typedef struct Symbol_* Symbol;
+typedef struct Symbol_ Symbol_t;
 
 struct Type_ {
     enum { BASIC, ARRAY, STRUCTURE } kind;
@@ -22,4 +27,11 @@ struct FieldList_ {
     Type type; // 域的类型
     FieldList tail; // 下一个域
 };
+
+struct Symbol_ {
+    char name[55];
+    Type type;   
+};
+
+
 #endif
