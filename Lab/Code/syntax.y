@@ -86,6 +86,12 @@ ExtDef : Specifier ExtDecList SEMI  {
                                         insertTreeNode($$, $2);
                                         insertTreeNode($$, $3);
                                     }
+    | Specifier FunDec SEMI         {
+                                        $$ = newTreeNode("ExtDef", NULL, @$.first_line);
+                                        insertTreeNode($$, $1);
+                                        insertTreeNode($$, $2);
+                                        insertTreeNode($$, newTreeNode("SEMI", NULL, 0));
+                                    }
     | error SEMI {$$ = NULL;}
     | Specifier error {$$ = NULL;}
     ;
