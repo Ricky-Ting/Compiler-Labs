@@ -87,3 +87,11 @@ void freeSymbol(Symbol sym) {
     // TODO
     return ;
 }
+
+void *myAlloc(size_t sz) {
+    void *ptr = (void *)malloc(sz);
+    if(ptr == NULL)
+        fprintf(stderr, "Need more memory!!!\n");
+        assert(0);
+    return ptr;
+}
