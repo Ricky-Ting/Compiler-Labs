@@ -38,7 +38,7 @@ delimit " "|\t|\r
                 int state = 0;
                 while(1) {
                     char c = input();
-                    if(c == '\0')
+                    if(c <= 0)
                         break;
                     if(c == '*') {
                         state = 1;
