@@ -30,7 +30,7 @@ struct Type_ {
 };
 
 struct FieldList_ {
-    char* name; // 域的名字
+    char name[55]; // 域的名字
     Type type; // 域的类型
     FieldList tail; // 下一个域
 };
@@ -46,8 +46,10 @@ struct Symbol_ {
     Symbol area_next;
 };
 
-
+void insertSymbol(Symbol sym);
 void freeSymbol(Symbol sym);
+void stack_push();
+void stack_pop();
 void *myAlloc(int sz);
 
 #endif
