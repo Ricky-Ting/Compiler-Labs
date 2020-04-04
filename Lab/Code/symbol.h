@@ -2,13 +2,13 @@
 #define SYMBOL_H
 
 #define HASH_TABLE_SZ 0x3fff
-#define MAX_RECUR 10
+#define MAX_RECUR 20  // 作用域最大嵌套深度
 
 typedef struct Type_* Type;
 typedef struct Type_ Type_t;
 
 typedef struct FieldList_* FieldList;
-typedef struct FieldList_ FieldList__t;
+typedef struct FieldList_ FieldList_t;
 
 typedef struct Symbol_* Symbol;
 typedef struct Symbol_ Symbol_t;
@@ -39,11 +39,15 @@ struct FieldList_ {
 struct Symbol_ {
     char name[55];
     Type type;
+    int lineno;
     Symbol prev;
     Symbol next;
     Symbol area_prev;
     Symbol area_next;
 };
 
+
+void freeSymbol(Symbol sym);
+void *myAlloc(int sz);
 
 #endif
