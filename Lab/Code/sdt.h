@@ -12,7 +12,7 @@ struct expType_ {
 typedef struct expType_ expType_t;
 typedef expType_t* expType;
 
-#define IS_EQUAL(a,b) (strcmp(a, b) == 0)
+
 
 #define TYPE_INT 0
 #define TYPE_FLOAT 1
@@ -32,11 +32,11 @@ void sdt_ExtDecList(TreeNode_t *root, Type baseType);
 Type sdt_Specifier(TreeNode_t *root);
 Type sdt_StructSpecifier(TreeNode_t* root);
 char* sdt_OptTag(TreeNode_t* root);
-char* Tag(TreeNode_t* root);
+char* sdt_Tag(TreeNode_t* root);
 
 /* Declarators */
 Symbol sdt_VarDec(TreeNode_t* root, Type baseType, int size);
-Type sdt_FunDec(TreeNode_t* root, Type retType);
+Symbol sdt_FunDec(TreeNode_t* root, Type retType);
 FieldList sdt_VarList(TreeNode_t* root);
 FieldList sdt_ParamDec(TreeNode_t* root);
 

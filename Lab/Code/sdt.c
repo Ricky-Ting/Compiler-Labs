@@ -7,12 +7,19 @@
 
 Type_t type_INT, type_FLOAT;
 
+
+int same_type(expType_t a, expType_t b) {
+    // TODO
+    return 1;
+}
+
 void sdt_init() {
     type_INT.kind = BASIC;
     type_INT.u.basic = TYPE_INT;
     type_FLOAT.kind = BASIC;
     type_FLOAT.u.basic = TYPE_FLOAT;
 
+    initTables();
     return;
 }
 
@@ -76,7 +83,7 @@ void sdt_ExtDef(TreeNode_t *root) {
         assert(root->Tree_child[2] != NULL);
         // TODO 重找重名 以及符合
 
-        if(!findSymbol(sym)) {
+        if(findSymbol(sym->name) == NULL) {
             insertSymbol(sym);
         } else {
             // TODO 比较之类的
@@ -135,13 +142,13 @@ Type sdt_StructSpecifier(TreeNode_t* root) {
     */
     assert(root->num_child==2 || root->num_child==5);
     if(root->num_child == 2) {
-        assert(root->Tree_child[1] != NULL)        
+        assert(root->Tree_child[1] != NULL);     
         char *name = sdt_Tag(root->Tree_child[1]);
-        Type type = findType(name);
-        if(type == NULL) {
+        Symbol sym = findType(name);
+        if(sym == NULL) {
             // TODO 报错
         }
-        return type;        
+        return sym->type;        
     } else {
         Type type = myAlloc(sizeof(Type_t));
         type->kind = STRUCTURE;
@@ -170,7 +177,7 @@ char* sdt_OptTag(TreeNode_t* root) {
     return root->Tree_child[0]->Tree_val;
 }
 
-char* Tag(TreeNode_t* root) {
+char* sdt_Tag(TreeNode_t* root) {
     return root->Tree_child[0]->Tree_val;
 }
 
@@ -210,7 +217,7 @@ Symbol sdt_VarDec(TreeNode_t* root, Type baseType, int size) {
     }
 }
 
-Type sdt_FunDec(TreeNode_t* root, Type retType) {
+Symbol sdt_FunDec(TreeNode_t* root, Type retType) {
     /* 
     * FunDec -> ID LP VarList RP
     * FunDec -> ID LP RP
@@ -340,8 +347,9 @@ void sdt_Stmt(TreeNode_t* root, Type retType) {
     if(root->num_child == 3) {
         // Stmt -> RETURN Exp SEMI
         assert(root->Tree_child[1] != NULL);
-        Type type = sdt_Exp(root->Tree_child[1]);
-        if(!same_type(type, retType)) {
+        expType_t type = sdt_Exp(root->Tree_child[1]);
+        expType_t exp_retType = {retType, 0};
+        if(!same_type(type, exp_retType)) {
             // TODO 报错
         }
         return;
@@ -352,8 +360,9 @@ void sdt_Stmt(TreeNode_t* root, Type retType) {
         // Stmt -> WHILE LP Exp RP Stmt
         assert(root->Tree_child[2] != NULL);
         assert(root->Tree_child[4] != NULL);
-        Type type = sdt_Exp(root->Tree_child[2]);
-        if(not_int(type)) {
+        expType_t type = sdt_Exp(root->Tree_child[1]);
+        expType_t type2 = {&type_INT, 0};
+        if(!same_type(type, type2)) {
             // TODO 报错
         }
         sdt_Stmt(root->Tree_child[4], retType);
@@ -365,8 +374,9 @@ void sdt_Stmt(TreeNode_t* root, Type retType) {
         assert(root->Tree_child[2] != NULL);
         assert(root->Tree_child[4] != NULL);
         assert(root->Tree_child[6] != NULL);
-        Type type = sdt_Exp(root->Tree_child[2]);
-        if(not_int(type)) {
+        expType_t type = sdt_Exp(root->Tree_child[1]);
+        expType_t type2 = {&type_INT, 0};
+        if(!same_type(type, type2)) {
             // TODO 报错
         }
         sdt_Stmt(root->Tree_child[4], retType);

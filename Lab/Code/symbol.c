@@ -13,6 +13,8 @@ struct {
     int top;
 } stack;
 
+void initSymbolTable();
+void initTypeTable();
 
 /* 哈希函数 */
 unsigned int hash_pjw(char* name) {
@@ -24,6 +26,13 @@ unsigned int hash_pjw(char* name) {
     }
     return val;
 }
+
+/* 初始化两张表 */
+void initTables() {
+    initSymbolTable();
+    initTypeTable();
+}
+
 
 /* 初始化符号表 */
 void initSymbolTable() {
@@ -93,6 +102,25 @@ void insertType(Symbol sym) {
     }
 }
 
+Symbol findSymbol(char* name) {
+    int slot = hash_pjw(name);
+    Symbol cur = symbolTable[slot];
+    while(cur != NULL && !IS_EQUAL(name, cur->name)) {
+        cur = cur->next;
+    }
+    return cur;
+}
+
+Symbol findType(char* name) {
+    int slot = hash_pjw(name);
+    Symbol cur = typeTable[slot];
+    while(cur != NULL && !IS_EQUAL(name, cur->name)) {
+        cur = cur->next;
+    }
+    return cur;
+}
+
+
 /* 压入新的作用域 */
 void stack_push() {
     stack.arr[stack.top] = NULL;
@@ -116,7 +144,7 @@ void stack_pop() {
         if(cur->next != NULL) {
             cur->next->prev = cur->prev;
         }
-        freeSymbol(cur);
+        //freeSymbol(cur);
         cur = next;
     }
     stack.arr[top] = NULL;

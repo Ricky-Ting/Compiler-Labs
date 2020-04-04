@@ -1,6 +1,8 @@
 #ifndef SYMBOL_H
 #define SYMBOL_H
 
+#include <string.h>
+
 #define HASH_TABLE_SZ 0x3fff
 #define MAX_RECUR 20  // 作用域最大嵌套深度
 
@@ -46,10 +48,15 @@ struct Symbol_ {
     Symbol area_next;
 };
 
+#define IS_EQUAL(a,b) (strcmp(a, b) == 0)
+
+void initTables();
 void insertSymbol(Symbol sym);
-void freeSymbol(Symbol sym);
+void insertType(Symbol sym);
+Symbol findSymbol(char* name);
+Symbol findType(char* name);
 void stack_push();
 void stack_pop();
 void *myAlloc(int sz);
-
+//void freeSymbol(Symbol sym);
 #endif
