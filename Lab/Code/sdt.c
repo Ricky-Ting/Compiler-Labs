@@ -6,11 +6,15 @@
 #include "sdt.h"
 
 Type_t type_INT, type_FLOAT;
-
+expType_t exp_INT, exp_FLOAT;
 
 int same_type(expType_t a, expType_t b) {
     // TODO
     return 1;
+}
+
+void sdt_error(int err, int lineno, char* s) {
+    fprintf(stderr, "Error type %d at Line %d: %s\n", err, lineno, s);
 }
 
 void sdt_init() {
@@ -18,6 +22,11 @@ void sdt_init() {
     type_INT.u.basic = TYPE_INT;
     type_FLOAT.kind = BASIC;
     type_FLOAT.u.basic = TYPE_FLOAT;
+
+    exp_INT.type = &type_INT;
+    exp_INT.size = 0;
+    exp_FLOAT.type = &type_FLOAT;
+    exp_FLOAT.size = 0;
 
     initTables();
     return;
@@ -531,14 +540,40 @@ expType_t sdt_Exp(TreeNode_t* root) {
             // Exp (ASSIGNOP AND OR RELOP PLUS MINUS STAR DIV) Exp
             expType_t ltype = sdt_Exp(root->Tree_child[0]);
             expType_t rtype = sdt_Exp(root->Tree_child[2]);
-            if(!same_type(ltype, rtype)) {
-                // TODO 报错
-            }
-            if(!IS_EQUAL(root->Tree_child[1]->Tree_token, "ASSIGNOP")) {
+            if(IS_EQUAL(root->Tree_child[1]->Tree_token, "ASSIGNOP")) {
+                if(!same_type(ltype, rtype)) {
+                    // 报错 类型5: 赋值号两边的表达式类型不匹配
+                    sdt_error(5, root->Tree_lineno, "Type mismatched for assignment");
+                    return exp_INT;
+                }
+                // TODO 报错 左值
+
+                return ltype;
+            } else {
+                if(!same_type(ltype, rtype)) {
+                    // 报错 类型7: 操作数类型不匹配或操作数类型与操作符不匹配
+                    sdt_error(7, root->Tree_lineno, "Unmatched operands");
+                    return exp_INT;
+                }
+
+                if(IS_EQUAL(root->Tree_child[1]->Tree_token, "AND") || IS_EQUAL(root->Tree_child[1]->Tree_token, "OR")) {
+                    // 报错 类型7: 操作数类型不匹配或操作数类型与操作符不匹配
+                    if(!same_type(ltype, exp_INT)) {
+                        sdt_error(7, root->Tree_lineno, "Unmatched operands");
+                        return exp_INT;
+                    }
+                }
+
+                if(!same_type(ltype, exp_INT) && !same_type(rtype, exp_FLOAT)) {
+                    // 报错 类型7: 操作数类型不匹配或操作数类型与操作符不匹配
+                    sdt_error(7, root->Tree_lineno, "Unmatched operands");
+                    return exp_INT;
+                }
+
                 // TODO 报错
             }
 
-            return ltype;
+            
         }
 
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "ID")) {
@@ -632,7 +667,35 @@ expType_t sdt_Exp(TreeNode_t* root) {
 }
 
 
+void sdt_Args(TreeNode_t* root, FieldList field) {
+    /*
+    * Args -> Exp COMMA Args
+    * Args -> Exp
+    */
 
+    assert(root->num_child == 1 || root->num_child == 3);
+
+    assert(root->Tree_child[0] != NULL);
+    
+    expType_t type = sdt_Exp(root->Tree_child[0]);
+    expType_t type2 = {field->type, 0};
+    if(field == NULL || !same_type(type, type2)) {
+        // 报错: 类型9: 函数调用时实参与形参的数目或类型不匹配
+        sdt_error(9, root->Tree_lineno, "Args doesn't match");
+        return;
+    }
+    
+    if(root->num_child == 1) {
+        if(field->tail != NULL) {
+            // 报错: 类型9: 函数调用时实参与形参的数目或类型不匹配
+            sdt_error(9, root->Tree_lineno, "Args doesn't match");
+        }
+        return;
+    }
+
+    assert(root->Tree_child[2] != NULL);
+    sdt_Args(root->Tree_child[2], field->tail);
+}
 
 
 /* Terminator */

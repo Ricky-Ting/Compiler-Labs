@@ -51,8 +51,10 @@ FieldList sdt_Def(TreeNode_t* root, int inStruct);
 FieldList sdt_DecList(TreeNode_t* root, Type baseType, int inStruct);
 FieldList sdt_Dec(TreeNode_t* root, Type baseType, int inStruct);
 
+
 /* Expressions */
 expType_t sdt_Exp(TreeNode_t* root);
+void sdt_Args(TreeNode_t* root, FieldList field);
 
 
 /* Terminator */
