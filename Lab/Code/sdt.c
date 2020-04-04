@@ -1,15 +1,26 @@
 #include <stdio.h>
+#include <assert.h>
+#include <string.h>
 #include "Tree.h"
 #include "symbol.h"
-#include <assert.h>
+#include "sdt.h"
 
-#define IS_EQUAL(a,b) (strcmp(a, b) == 0)
+Type_t type_INT, type_FLOAT;
 
-#define TYPE_INT 0
-#define TYPE_FLOAT 1
+void sdt_init() {
+    type_INT.kind = BASIC;
+    type_INT.u.basic = TYPE_INT;
+    type_FLOAT.kind = BASIC;
+    type_FLOAT.u.basic = TYPE_FLOAT;
+
+    return;
+}
+
 
 /* High-level Definitions */
-void sdt_Progam(TreeNode_t *root) {
+void sdt_Progam(TreeNode_t* root) {
+    sdt_init();
+
     /*
     * Program -> ExtDefList
     */
@@ -199,7 +210,7 @@ Symbol sdt_VarDec(TreeNode_t* root, Type baseType, int size) {
     }
 }
 
-Type FunDec(TreeNode_t* root, Type retType) {
+Type sdt_FunDec(TreeNode_t* root, Type retType) {
     /* 
     * FunDec -> ID LP VarList RP
     * FunDec -> ID LP RP
@@ -477,7 +488,7 @@ FieldList sdt_Dec(TreeNode_t* root, Type baseType, int inStruct) {
 
 /* Expressions */
 
-Type sdt_Exp(TreeNode_t* root) {
+expType_t sdt_Exp(TreeNode_t* root) {
     /*
     * Exp -> Exp ASSIGNOP Exp
     * Exp -> Exp AND Exp 
@@ -501,10 +512,114 @@ Type sdt_Exp(TreeNode_t* root) {
     * Exp -> FLOAT
     */
 
+    if(root->num_child == 3) {
+        assert(root->Tree_child[0] != NULL);
+        assert(root->Tree_child[1] != NULL);
+        assert(root->Tree_child[2] != NULL);
 
+        if(IS_EQUAL(root->Tree_child[0]->Tree_token, "Exp") && IS_EQUAL(root->Tree_child[2]->Tree_token, "Exp")) {
+            // Exp (ASSIGNOP AND OR RELOP PLUS MINUS STAR DIV) Exp
+            expType_t ltype = sdt_Exp(root->Tree_child[0]);
+            expType_t rtype = sdt_Exp(root->Tree_child[2]);
+            if(!same_type(ltype, rtype)) {
+                // TODO 报错
+            }
+            if(!IS_EQUAL(root->Tree_child[1]->Tree_token, "ASSIGNOP")) {
+                // TODO 报错
+            }
 
+            return ltype;
+        }
+
+        if(IS_EQUAL(root->Tree_child[0]->Tree_token, "ID")) {
+            // Exp -> ID LP RP
+
+        }
+
+        if(IS_EQUAL(root->Tree_child[0]->Tree_token, "LP")) {
+            // Exp -> LP Exp RP
+            return sdt_Exp(root->Tree_child[1]);
+        }
+
+        if(IS_EQUAL(root->Tree_child[1]->Tree_token, "DOT")) {
+            // Exp -> Exp DOT ID 
+            // TODO 
+            return ;
+        }
+
+        // Shound't reach here!!!
+        assert(0);
+    }
+
+    if(root->num_child == 2) {
+        assert(root->Tree_child[0] != NULL);
+        assert(root->Tree_child[1] != NULL);
+
+        if(IS_EQUAL(root->Tree_child[0]->Tree_token, "MINUS")) {
+            // Exp -> MINUS Exp
+            // TODO 确认类型 报错
+            expType_t type = sdt_Exp(root->Tree_child[1]);
+            return type;
+        }
+
+        if(IS_EQUAL(root->Tree_child[0]->Tree_token, "NOT")) {
+            // Exp -> NOT Exp
+            // TODO 确认类型 报错
+            expType_t type = sdt_Exp(root->Tree_child[1]);
+            return type;
+        }
+        // Shound't reach here!!!
+        assert(0);
+    }
+
+    if(root->num_child ==  4) {
+        assert(root->Tree_child[0] != NULL);
+        assert(root->Tree_child[1] != NULL);
+        assert(root->Tree_child[2] != NULL);
+        assert(root->Tree_child[3] != NULL);
+        if(IS_EQUAL(root->Tree_child[0]->Tree_token, "ID")) {
+            // Exp -> ID LP Args RP
+            // TODO
+            return ;
+        }
+        if(IS_EQUAL(root->Tree_child[0]->Tree_token, "Exp")) {
+            // Exp -> Exp LB Exp RB
+            // TODO
+            return ;
+        }
+        // Shound't reach here!!!
+        assert(0);
+    }
+
+    if(root->num_child == 1) {
+        assert(root->Tree_child[0] != NULL);
+        if(IS_EQUAL(root->Tree_child[0]->Tree_token, "ID")) {
+            // Exp -> ID
+            // TODO 查找符号表 获取ID的类型
+            
+            return;
+        }
+        if(IS_EQUAL(root->Tree_child[0]->Tree_token, "INT")) {
+            // Exp -> INT
+            expType_t type;
+            type.type = &type_INT;
+            type.size = 0;
+            return type;
+        }
+        if(IS_EQUAL(root->Tree_child[0]->Tree_token, "FLOAT")) {
+            // Exp -> FLOAT
+            expType_t type;
+            type.type = &type_FLOAT;
+            type.size = 0;
+            return type;
+        }
+        // Shound't reach here!!!
+        assert(0);
+    }
+
+    // Shound't reach here!!!
+    assert(0);
 }
-
 
 
 
