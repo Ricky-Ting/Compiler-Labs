@@ -32,6 +32,11 @@ char* errMessage[19] = {
     "Inconsistent declaration of function"
 };
 
+
+void helper(TreeNode_t* root) {
+    //fprintf(stderr, "In %s\n", root->Tree_token);
+}
+
 int _same_type(Type a, Type b) {
     if(a == NULL && b == NULL)
         return 1;
@@ -144,7 +149,7 @@ void sdt_init() {
 /* High-level Definitions */
 void sdt_Program(TreeNode_t* root) {
     sdt_init();
-
+    helper(root);
     /*
     * Program -> ExtDefList
     */
@@ -157,6 +162,7 @@ void sdt_Program(TreeNode_t* root) {
 }
 
 void sdt_ExtDefList(TreeNode_t *root) {
+    helper(root);
     /*
     * ExtDefList -> ExtDef ExtDefList
     * ExtDefList -> e (not reach)
@@ -173,6 +179,7 @@ void sdt_ExtDefList(TreeNode_t *root) {
 }
 
 void sdt_ExtDef(TreeNode_t *root) {
+    helper(root);
     /*
     * ExtDef -> Specifier ExtDecList SEMI 
     * ExtDef -> Specifier SEMI
@@ -237,6 +244,7 @@ void sdt_ExtDef(TreeNode_t *root) {
 }
 
 void sdt_ExtDecList(TreeNode_t *root, Type baseType) {
+    helper(root);
     /*
     * ExtDecList -> VarDec
     * ExtDecList -> VarDec COMMA ExtDecList
@@ -257,6 +265,7 @@ void sdt_ExtDecList(TreeNode_t *root, Type baseType) {
 /* Specifiers */
 
 Type sdt_Specifier(TreeNode_t *root) {
+    helper(root);
     /*
         Specifier -> TYPE
         Specifier -> StructSpecifier
@@ -278,6 +287,7 @@ Type sdt_Specifier(TreeNode_t *root) {
 }
 
 Type sdt_StructSpecifier(TreeNode_t* root) {
+    helper(root);
     /* 
     * StructSpecifier -> STRUCT OptTag LC DefList RC
     * StructSpecifier -> STRUCT Tag
@@ -295,6 +305,7 @@ Type sdt_StructSpecifier(TreeNode_t* root) {
         }
         return sym->type;        
     } else {
+        stack_push();
         Type type = myAlloc(sizeof(Type_t));
         type->kind = STRUCTURE;
         type->u.structure = NULL;
@@ -320,10 +331,11 @@ Type sdt_StructSpecifier(TreeNode_t* root) {
             // 同名结构体或变量
             // 报错 类型16: 结构体的名字与前面定义过得结构体或变量的名字重复
             sdt_error(16, root->Tree_lineno, "STRUCT");
+            stack_pop();
             return &type_INT;
         } else {
-            
             insertType(sym);
+            stack_pop();
             return type;
         }
         
@@ -332,6 +344,7 @@ Type sdt_StructSpecifier(TreeNode_t* root) {
 }
 
 char* sdt_OptTag(TreeNode_t* root) {
+    helper(root);
     /*
         OptTag -> ID
         OptTag -> e
@@ -341,6 +354,7 @@ char* sdt_OptTag(TreeNode_t* root) {
 }
 
 char* sdt_Tag(TreeNode_t* root) {
+    helper(root);
     // Tag -> ID
     return root->Tree_child[0]->Tree_val;
 }
@@ -348,6 +362,7 @@ char* sdt_Tag(TreeNode_t* root) {
 
 /* Declarators */
 Symbol sdt_VarDec(TreeNode_t* root, Type baseType, int size, int inStruct) {
+    helper(root);
     /* 
     * VarDec -> ID
     * VarDec -> VarDec LB INT RB
@@ -396,6 +411,7 @@ Symbol sdt_VarDec(TreeNode_t* root, Type baseType, int size, int inStruct) {
 }
 
 Symbol sdt_FunDec(TreeNode_t* root, Type retType) {
+    helper(root);
     /* 
     * FunDec -> ID LP VarList RP
     * FunDec -> ID LP RP
@@ -422,6 +438,7 @@ Symbol sdt_FunDec(TreeNode_t* root, Type retType) {
 }
 
 FieldList sdt_VarList(TreeNode_t* root) {
+    helper(root);
     /*
     * VarList -> ParamDec COMMA VarList
     * VarList -> ParamDec
@@ -446,6 +463,7 @@ FieldList sdt_VarList(TreeNode_t* root) {
 
 
 FieldList sdt_ParamDec(TreeNode_t* root) {
+    helper(root);
     /*
     * ParamDec -> Specifier VarDec 
     */
@@ -469,6 +487,7 @@ FieldList sdt_ParamDec(TreeNode_t* root) {
 /* Statements */
 
 void sdt_CompSt(TreeNode_t* root, Type retType) {
+    helper(root);
     /*
     * CompSt -> LC DefList StmtList RC
     */
@@ -485,6 +504,7 @@ void sdt_CompSt(TreeNode_t* root, Type retType) {
 }
 
 void sdt_StmtList(TreeNode_t* root, Type retType) {
+    helper(root);
     /*
     * StmtList -> Stmt StmtList
     */
@@ -498,6 +518,7 @@ void sdt_StmtList(TreeNode_t* root, Type retType) {
 }
 
 void sdt_Stmt(TreeNode_t* root, Type retType) {
+    helper(root);
     /* 
     * Stmt -> Exp SEMI
     * Stmt -> CompSt
@@ -541,7 +562,7 @@ void sdt_Stmt(TreeNode_t* root, Type retType) {
         // Stmt -> WHILE LP Exp RP Stmt
         assert(root->Tree_child[2] != NULL);
         assert(root->Tree_child[4] != NULL);
-        expType_t type = sdt_Exp(root->Tree_child[1]);
+        expType_t type = sdt_Exp(root->Tree_child[2]);
         if(!same_type(type, exp_INT)) {
             // 报错 类型7: balabal
             sdt_error(7, root->Tree_lineno, "IF WHILE");
@@ -555,7 +576,7 @@ void sdt_Stmt(TreeNode_t* root, Type retType) {
         assert(root->Tree_child[2] != NULL);
         assert(root->Tree_child[4] != NULL);
         assert(root->Tree_child[6] != NULL);
-        expType_t type = sdt_Exp(root->Tree_child[1]);
+        expType_t type = sdt_Exp(root->Tree_child[2]);
         if(!same_type(type, exp_INT)) {
             // 报错 类型7: balabal
             sdt_error(7, root->Tree_lineno, "IF WHILE");
@@ -573,6 +594,7 @@ void sdt_Stmt(TreeNode_t* root, Type retType) {
 
 /* Local Definitions */
 FieldList sdt_DefList(TreeNode_t* root, int inStruct) {
+    helper(root);
     /* 
     * DefList -> Def DefList 
     * DefList -> e
@@ -600,6 +622,7 @@ FieldList sdt_DefList(TreeNode_t* root, int inStruct) {
 }
 
 FieldList sdt_Def(TreeNode_t* root, int inStruct) {
+    helper(root);
     /*
     * Def -> Specifier DecList SEMI
     */
@@ -614,6 +637,7 @@ FieldList sdt_Def(TreeNode_t* root, int inStruct) {
 }
 
 FieldList sdt_DecList(TreeNode_t* root, Type baseType, int inStruct) {
+    helper(root);
     /* 
     * DecList -> Dec
     * DecList -> Dec COMMA DecList
@@ -649,6 +673,7 @@ FieldList sdt_DecList(TreeNode_t* root, Type baseType, int inStruct) {
 }
 
 FieldList sdt_Dec(TreeNode_t* root, Type baseType, int inStruct) {
+    helper(root);
     /*
     * Dec -> VarDec
     * Dec -> VarDec ASSIGNOP Exp
@@ -691,6 +716,7 @@ FieldList sdt_Dec(TreeNode_t* root, Type baseType, int inStruct) {
 /* Expressions */
 
 expType_t sdt_Exp(TreeNode_t* root) {
+    helper(root);
     /*
     * Exp -> Exp ASSIGNOP Exp
     * Exp -> Exp AND Exp 
@@ -707,7 +733,7 @@ expType_t sdt_Exp(TreeNode_t* root) {
     * 
     * Exp -> ID LP Args RP
     * Exp -> ID LP RP 
-    * Exp -> Exp LB Exp Exp RB
+    * Exp -> Exp LB Exp RB
     * Exp -> Exp DOT ID
     * Exp -> ID
     * Exp -> INT
@@ -967,11 +993,16 @@ expType_t sdt_Exp(TreeNode_t* root) {
     }
 
     // Shound't reach here!!!
+    //printf("%s\n", root->Tree_token);
+    for(int i=0; i<root->num_child; ++i) {
+        printf("%s ", root->Tree_child[i]->Tree_token);
+    }
     assert(0);
 }
 
 
 int sdt_Args(TreeNode_t* root, FieldList field) {
+    helper(root);
     /*
     * Args -> Exp COMMA Args
     * Args -> Exp
@@ -1011,10 +1042,12 @@ int sdt_Args(TreeNode_t* root, FieldList field) {
 
 /* Terminator */
 char* sdt_ID(TreeNode_t* root) {
+    helper(root);
     return root->Tree_val;
 }
 
 int sdt_TYPE(TreeNode_t* root) {
+    helper(root);
     if(IS_EQUAL(root->Tree_val, "int"))
         return TYPE_INT;
     else if(IS_EQUAL(root->Tree_val, "float")) 

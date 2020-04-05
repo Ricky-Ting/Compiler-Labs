@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#define DEBUG
+//#define DEBUG
 
 Symbol symbolTable[HASH_TABLE_SZ]; // For symbol with variables
 Symbol typeTable[HASH_TABLE_SZ]; // For struct type
