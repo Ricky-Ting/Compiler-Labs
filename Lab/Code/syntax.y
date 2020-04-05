@@ -437,3 +437,9 @@ void printAST() {
         printTree(root, 0);
 }
 
+TreeNode_t* getRoot() {
+    if(error_num == 0)
+        return root;
+    return NULL;
+}
+

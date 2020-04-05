@@ -116,7 +116,7 @@ void sdt_init() {
 
 
 /* High-level Definitions */
-void sdt_Progam(TreeNode_t* root) {
+void sdt_Program(TreeNode_t* root) {
     sdt_init();
 
     /*
@@ -178,6 +178,8 @@ void sdt_ExtDef(TreeNode_t *root) {
         Symbol sym = sdt_FunDec(root->Tree_child[1], type);
         assert(root->Tree_child[2] != NULL);
 
+        stack_pop();
+
         if(findSymbol(sym->name) == NULL) {
             insertSymbol(sym);
         } else {
@@ -191,10 +193,13 @@ void sdt_ExtDef(TreeNode_t *root) {
         }
 
         if(IS_EQUAL(root->Tree_child[2]->Tree_token, "CompSt")) {
+            stack_push();
+            sdt_FunDec(root->Tree_child[1], type);
             sdt_CompSt(root->Tree_child[2], type);
+            stack_pop();
         }
         // 退栈
-        stack_pop();
+        
         return;
     }
 }
@@ -272,6 +277,7 @@ Type sdt_StructSpecifier(TreeNode_t* root) {
         } else {
             strncpy(sym->name, sdt_OptTag(root->Tree_child[1]), 55);
         }
+
         if(root->Tree_child[3] != NULL)
             type->u.structure = sdt_DefList(root->Tree_child[3], 1);
 
@@ -282,12 +288,13 @@ Type sdt_StructSpecifier(TreeNode_t* root) {
             // 同名结构体或变量
             // 报错 类型16: 结构体的名字与前面定义过得结构体或变量的名字重复
             sdt_error(16, root->Tree_lineno, "STRUCT");
-
             return &type_INT;
         } else {
+            
             insertType(sym);
             return type;
         }
+        
         
     }
 }
@@ -334,7 +341,7 @@ Symbol sdt_VarDec(TreeNode_t* root, Type baseType, int size) {
         
         //Symbol exist_sym = findSymbol(sym->name);
         // TODO 结构体名字重复待考虑
-        if(existSymbol(sym->name)) {
+        if(existSymbol(sym->name) || findType(sym->name) != NULL) {
             // 变量重复定义
             // 报错 类型3: 变量出现重复定义，或变量与前面定义过的结构体名字重复
             sdt_error(3, root->Tree_lineno, "Variable");
@@ -415,16 +422,7 @@ FieldList sdt_ParamDec(TreeNode_t* root) {
     field->type = sym->type;
     field->tail = NULL;
     
-    // TODO 重名检测
-    if(existSymbol(sym->name)) {
-        // 变量重定义
-        // 报错 类型3: 变量出现重复定义，或变量与前面定义过得结构体名字重复
-        sdt_error(3, root->Tree_lineno, "Va");
-    } else {
-        insertSymbol(sym);
-    }
-
-    // TODO 返回值待考虑
+    
     return field;
 }
 
@@ -848,6 +846,7 @@ expType_t sdt_Exp(TreeNode_t* root) {
                 sdt_error(11, root->Tree_lineno, "Func");
                 return exp_INT;
             }
+
             // 参数不符合的报错留个Args解决：
             if (!sdt_Args(root->Tree_child[2], sym->type->u.func.params)) {
                 return exp_INT;
@@ -864,10 +863,10 @@ expType_t sdt_Exp(TreeNode_t* root) {
             expType_t ltype = sdt_Exp(root->Tree_child[0]);
             expType_t rtype = sdt_Exp(root->Tree_child[2]);
 
-            if(ltype.type->kind != ARRAY || ltype.type->u.array.size >= ltype.size) {
+            if(ltype.type->kind != ARRAY || ltype.type->u.array.size <= ltype.size) {
                 // 不是数组类型 或者维度不对
                 // 报错 类型10: 对非数组型变量使用"[...]"操作符
-                sdt_error(10, root->Tree_lineno, "ARRAY");
+                sdt_error(10, root->Tree_lineno, "ARRAYH");
                 return exp_INT;
             }
 
@@ -934,10 +933,16 @@ int sdt_Args(TreeNode_t* root, FieldList field) {
     assert(root->num_child == 1 || root->num_child == 3);
 
     assert(root->Tree_child[0] != NULL);
+
+    if(field == NULL) {
+        // 报错: 类型9: 函数调用时实参与形参的数目或类型不匹配
+        sdt_error(9, root->Tree_lineno, "Args doesn't match");
+        return 0;
+    }
     
     expType_t type = sdt_Exp(root->Tree_child[0]);
     expType_t type2 = {field->type, 0};
-    if(field == NULL || !same_type(type, type2)) {
+    if(!same_type(type, type2)) {
         // 报错: 类型9: 函数调用时实参与形参的数目或类型不匹配
         sdt_error(9, root->Tree_lineno, "Args doesn't match");
         return 0;
@@ -963,9 +968,9 @@ char* sdt_ID(TreeNode_t* root) {
 }
 
 int sdt_TYPE(TreeNode_t* root) {
-    if(IS_EQUAL(root->Tree_token, "int"))
+    if(IS_EQUAL(root->Tree_val, "int"))
         return TYPE_INT;
-    else if(IS_EQUAL(root->Tree_token, "float")) 
+    else if(IS_EQUAL(root->Tree_val, "float")) 
         return TYPE_FLOAT;
     else 
         assert(0);

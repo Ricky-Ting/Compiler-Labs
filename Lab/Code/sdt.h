@@ -22,7 +22,7 @@ typedef expType_t* expType;
 void sdt_init();
 
 /* High-level Definitions */
-void sdt_Progam(TreeNode_t* root);
+void sdt_Program(TreeNode_t* root);
 void sdt_ExtDefList(TreeNode_t *root);
 void sdt_ExtDef(TreeNode_t *root);
 void sdt_ExtDecList(TreeNode_t *root, Type baseType);

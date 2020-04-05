@@ -24,7 +24,8 @@ TreeNode_t* newTreeNode(char* Tree_token, char* Tree_val, int Tree_lineno) {
 
 
 void insertTreeNode(TreeNode_t* root, TreeNode_t* child) {
-    if(child != NULL) 
+    // Modified for Lab2
+    //if(child != NULL) 
         root->Tree_child[root->num_child++] = child;
     return;
 }

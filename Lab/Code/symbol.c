@@ -3,6 +3,8 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#define DEBUG
+
 Symbol symbolTable[HASH_TABLE_SZ]; // For symbol with variables
 Symbol typeTable[HASH_TABLE_SZ]; // For struct type
 
@@ -22,7 +24,7 @@ unsigned int hash_pjw(char* name) {
     for (; *name; ++name) {
         val = (val<<2) + *name;
         if (i = val & ~HASH_TABLE_SZ)
-            val = (val ^ (i >> 12) & HASH_TABLE_SZ);
+            val = (val ^ (i >> 12)) & HASH_TABLE_SZ;
     }
     return val;
 }
@@ -52,6 +54,14 @@ void initTypeTable() {
 
 /* 插入符号表 */
 void insertSymbol(Symbol sym) {
+    
+    #ifdef DEBUG
+        fprintf(stderr, "Insert Symbol %s\n", sym->name);
+        if(sym->type->kind == ARRAY) {
+            fprintf(stderr, "Array size is %d\n", sym->type->u.array.size);
+        }
+    #endif
+
     // 确定在哪个slot
     int slot = hash_pjw(sym->name);
     
@@ -124,15 +134,20 @@ Symbol findType(char* name) {
 int existSymbol(char* name) {
     int top = stack.top - 1;
     int slot = hash_pjw(name);
-    Symbol cur = typeTable[slot];
+    //printf("Gere slot = %d \n", slot);
+    Symbol cur = symbolTable[slot];
     while(cur != NULL && !IS_EQUAL(name, cur->name)) {
+        #ifdef DEBUG
+            fprintf(stderr, "Here %s\n", cur->name);
+        #endif
+
         cur = cur->next;
     }
 
     if(cur == NULL)
         return 0;
     
-    while(cur != NULL) {
+    while(cur->area_prev != NULL) {
         cur = cur->area_prev;
     }
     if(cur == stack.arr[top]) {
@@ -185,8 +200,9 @@ void freeSymbol(Symbol sym) {
 /* 封装了malloc, 在内存不足的时候报错 */
 void *myAlloc(int sz) {
     void *ptr = (void *)malloc(sz);
-    if(ptr == NULL)
+    if(ptr == NULL) {
         fprintf(stderr, "Need more memory!!!\n");
         assert(0);
+    }
     return ptr;
 }
