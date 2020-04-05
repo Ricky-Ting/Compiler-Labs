@@ -7,11 +7,88 @@
 
 Type_t type_INT, type_FLOAT;
 expType_t exp_INT, exp_FLOAT;
+char random_name[55];
+int pos;
+
+int _same_type(Type a, Type b) {
+    if(a == NULL && b == NULL)
+        return 1;
+    if(a == NULL || b == NULL) 
+        return 0;
+    
+    if(a->kind != b->kind ) 
+        return 0;
+    
+    if(a->kind == BASIC) 
+        return (a->u.basic == b->u.basic);
+    
+    if(a->kind == ARRAY) 
+        return _same_type(a->u.array.elem, b->u.array.elem) && (a->u.array.size == b->u.array.size);
+    
+    if(a->kind == STRUCTURE) {
+        FieldList cur1 = a->u.structure;
+        FieldList cur2 = b->u.structure;
+        while(cur1 != NULL && cur2 != NULL) {
+            if(!_same_type(cur1->type, cur2->type)) 
+                return 0;
+            cur1 = cur1->tail;
+            cur2 = cur2->tail;
+        }
+        if(cur1 != NULL || cur2 != NULL)
+            return 0;
+        return 1;
+    }
+
+    if(a->kind == FUNC) {
+        if(!_same_type(a->u.func.ret, b->u.func.ret))
+            return 0;
+        FieldList cur1 = a->u.func.params;
+        FieldList cur2 = b->u.func.params;
+        while(cur1 != NULL && cur2 != NULL) {
+            if(!_same_type(cur1->type, cur2->type)) 
+                return 0;
+            cur1 = cur1->tail;
+            cur2 = cur2->tail;
+        }
+        if(cur1 != NULL || cur2 != NULL)
+            return 0;
+        return 1;
+    }
+
+    // Shound't reach here!!!
+    assert(0);    
+}
+
+char* get_name() {
+    if(random_name[pos] == 'Z') {
+        pos++;
+        random_name[pos] = 'A';
+        random_name[pos+1] = '\0';
+    } else {
+        random_name[pos]++;
+    }
+    return random_name;
+}
 
 int same_type(expType_t a, expType_t b) {
-    // TODO
-    return 1;
+    if(a.type == NULL && b.type == NULL)
+        return 1;
+    if(a.type == NULL || b.type == NULL) 
+        return 0;
+
+    if(a.type->kind != b.type->kind)
+        return 0;
+
+    if(a.type->kind == ARRAY) {
+        if(!_same_type(a.type->u.array.elem, b.type->u.array.elem) || a.size != b.size) {
+            return 0;
+        }
+        return 1;
+    }
+    return _same_type(a.type, b.type);
 }
+
+
 
 void sdt_error(int err, int lineno, char* s) {
     fprintf(stderr, "Error type %d at Line %d: %s\n", err, lineno, s);
@@ -27,6 +104,11 @@ void sdt_init() {
     exp_INT.size = 0;
     exp_FLOAT.type = &type_FLOAT;
     exp_FLOAT.size = 0;
+
+    random_name[0] = '#';
+    random_name[1] = 'A';
+    random_name[2] = '\0';
+    pos = 1;
 
     initTables();
     return;
@@ -80,28 +162,38 @@ void sdt_ExtDef(TreeNode_t *root) {
     /* ExtDecList SEMI FunDec 都不会产生空 */
     assert(root->Tree_child[1] != NULL);
     if(IS_EQUAL(root->Tree_child[1]->Tree_token, "SEMI")) {
+        // ExtDef -> Specifier SEMI
         return;
     } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "ExtDecList")) {
-        // TODO
+        // ExtDef -> Specifier ExtDecList SEMI
         sdt_ExtDecList(root->Tree_child[1], type);
         return;
     } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "FunDec")) {
-        // TODO
-        stack_push();
+        // ExtDef -> Specifier FunDec Compst
+        // ExtDef -> Specifier FunDec SEMI
+    
+        // 遇到函数 压栈
+        stack_push(); 
+        // 创建符号
         Symbol sym = sdt_FunDec(root->Tree_child[1], type);
         assert(root->Tree_child[2] != NULL);
-        // TODO 重找重名 以及符合
 
         if(findSymbol(sym->name) == NULL) {
             insertSymbol(sym);
         } else {
-            // TODO 比较之类的
+            // 判断是否是同一类型函数
+            if(!_same_type(sym->type, findSymbol(sym->name)->type)) {
+                // 定义不同
+                // 报错 类型19: 函数的多次声明互相冲突，或者声明与定义之间互相冲突
+                sdt_error(19, root->Tree_lineno, "FUNC");   
+                // 是否要终止？？？ 待考虑 TODO
+            }
         }
 
         if(IS_EQUAL(root->Tree_child[2]->Tree_token, "CompSt")) {
             sdt_CompSt(root->Tree_child[2], type);
         }
-
+        // 退栈
         stack_pop();
         return;
     }
@@ -128,14 +220,18 @@ void sdt_ExtDecList(TreeNode_t *root, Type baseType) {
 /* Specifiers */
 
 Type sdt_Specifier(TreeNode_t *root) {
+    /*
+        Specifier -> TYPE
+        Specifier -> StructSpecifier
+    */
     assert(root->num_child == 1);
     assert(root->Tree_child[0] != NULL);
     if(IS_EQUAL(root->Tree_child[0]->Tree_token, "TYPE")) {
         int basic_type = sdt_TYPE(root->Tree_child[0]);
-        Type type = (Type)myAlloc(sizeof(Type_t));
-        type->kind = BASIC;
-        type->u.basic = basic_type;
-        return type;
+        if(basic_type == TYPE_INT) 
+            return &type_INT;
+        else 
+            return &type_FLOAT;
     } else if(IS_EQUAL(root->Tree_child[0]->Tree_token, "StructSpecifier")) {
         return sdt_StructSpecifier(root->Tree_child[0]);
     } else {
@@ -155,7 +251,10 @@ Type sdt_StructSpecifier(TreeNode_t* root) {
         char *name = sdt_Tag(root->Tree_child[1]);
         Symbol sym = findType(name);
         if(sym == NULL) {
-            // TODO 报错
+            // 找不到这个结构体类型
+            // 报错 类型17: 直接使用未定义过得结构体来定义变量
+            sdt_error(17, root->Tree_lineno, "STRUCT");
+            return &type_INT;
         }
         return sym->type;        
     } else {
@@ -168,25 +267,42 @@ Type sdt_StructSpecifier(TreeNode_t* root) {
         sym->prev = sym->next = sym->area_prev = sym->area_next = NULL;
 
         if(root->Tree_child[1] == NULL) {
-            // TODO 指定一个名字
+            // 匿名结构体指定一个名字
+            strncpy(sym->name, get_name(), 55);
         } else {
             strncpy(sym->name, sdt_OptTag(root->Tree_child[1]), 55);
         }
         if(root->Tree_child[3] != NULL)
             type->u.structure = sdt_DefList(root->Tree_child[3], 1);
 
-        insertType(sym);
-        return type;
+        //Symbol exist_sym = findSymbol(sym->name);
+        //结构体类型的作用域是全局的
+        // TODO 待check
+        if(findSymbol(sym->name) != NULL || findType(sym->name) != NULL) {
+            // 同名结构体或变量
+            // 报错 类型16: 结构体的名字与前面定义过得结构体或变量的名字重复
+            sdt_error(16, root->Tree_lineno, "STRUCT");
+
+            return &type_INT;
+        } else {
+            insertType(sym);
+            return type;
+        }
+        
     }
 }
 
 char* sdt_OptTag(TreeNode_t* root) {
-    if(root->num_child == 0)
-        return NULL;
+    /*
+        OptTag -> ID
+        OptTag -> e
+    */
+    assert(root->num_child == 1);
     return root->Tree_child[0]->Tree_val;
 }
 
 char* sdt_Tag(TreeNode_t* root) {
+    // Tag -> ID
     return root->Tree_child[0]->Tree_val;
 }
 
@@ -215,14 +331,21 @@ Symbol sdt_VarDec(TreeNode_t* root, Type baseType, int size) {
         strncpy(sym->name, sdt_ID(root->Tree_child[0]), 55);
         sym->type = type;
         sym->prev = sym->next = sym->area_prev = sym->area_next = NULL;
-        // TODO
-        insertSymbol(sym);
-
+        
+        //Symbol exist_sym = findSymbol(sym->name);
+        // TODO 结构体名字重复待考虑
+        if(existSymbol(sym->name)) {
+            // 变量重复定义
+            // 报错 类型3: 变量出现重复定义，或变量与前面定义过的结构体名字重复
+            sdt_error(3, root->Tree_lineno, "Variable");
+            // TODO 这次是否直接返回 待考虑
+        } else {
+            insertSymbol(sym);
+        }
         return sym;
     } else {
         assert(root->Tree_child[0] != NULL);
         return sdt_VarDec(root->Tree_child[0], baseType, size+1);
-        
     }
 }
 
@@ -291,8 +414,18 @@ FieldList sdt_ParamDec(TreeNode_t* root) {
     strncpy(field->name, sym->name, 55);
     field->type = sym->type;
     field->tail = NULL;
+    
     // TODO 重名检测
-    insertSymbol(sym);
+    if(existSymbol(sym->name)) {
+        // 变量重定义
+        // 报错 类型3: 变量出现重复定义，或变量与前面定义过得结构体名字重复
+        sdt_error(3, root->Tree_lineno, "Va");
+    } else {
+        insertSymbol(sym);
+    }
+
+    // TODO 返回值待考虑
+    return field;
 }
 
 
@@ -359,7 +492,9 @@ void sdt_Stmt(TreeNode_t* root, Type retType) {
         expType_t type = sdt_Exp(root->Tree_child[1]);
         expType_t exp_retType = {retType, 0};
         if(!same_type(type, exp_retType)) {
-            // TODO 报错
+            // 返回值类型不统一
+            // 报错 类型8: return语句的返回类型与函数定义的返回类型不匹配
+            sdt_error(8, root->Tree_lineno, "return");
         }
         return;
     }
@@ -370,9 +505,9 @@ void sdt_Stmt(TreeNode_t* root, Type retType) {
         assert(root->Tree_child[2] != NULL);
         assert(root->Tree_child[4] != NULL);
         expType_t type = sdt_Exp(root->Tree_child[1]);
-        expType_t type2 = {&type_INT, 0};
-        if(!same_type(type, type2)) {
-            // TODO 报错
+        if(!same_type(type, exp_INT)) {
+            // 报错 类型7: balabal
+            sdt_error(7, root->Tree_lineno, "IF WHILE");
         }
         sdt_Stmt(root->Tree_child[4], retType);
         return;
@@ -384,9 +519,9 @@ void sdt_Stmt(TreeNode_t* root, Type retType) {
         assert(root->Tree_child[4] != NULL);
         assert(root->Tree_child[6] != NULL);
         expType_t type = sdt_Exp(root->Tree_child[1]);
-        expType_t type2 = {&type_INT, 0};
-        if(!same_type(type, type2)) {
-            // TODO 报错
+        if(!same_type(type, exp_INT)) {
+            // 报错 类型7: balabal
+            sdt_error(7, root->Tree_lineno, "IF WHILE");
         }
         sdt_Stmt(root->Tree_child[4], retType);
         sdt_Stmt(root->Tree_child[6], retType);
@@ -419,7 +554,6 @@ FieldList sdt_DefList(TreeNode_t* root, int inStruct) {
         }
         return field;
     } else {
-        // TODO
         sdt_Def(root->Tree_child[0], inStruct);
         if(root->Tree_child[1] != NULL) {
             sdt_DefList(root->Tree_child[1], inStruct);
@@ -495,11 +629,23 @@ FieldList sdt_Dec(TreeNode_t* root, Type baseType, int inStruct) {
         field->type = sym->type;
 
         if(root->num_child == 3) {
-            // TODO 报错：结构体里面不能赋值
+            // 结构体里面不能赋值
+            // 报错 类型15: 结构体中域名重复定义，或在定义时对域进行初始化
+            sdt_error(15, root->Tree_lineno, "Strutc");
         }
         return field;
     } else {
-        // TODO 判断左右类型是否相同
+        
+        if(root->num_child == 3) {
+            // 判断左右类型是否相同
+            expType_t ltype = {sym->type, 0};
+            expType_t rtype = sdt_Exp(root->Tree_child[2]);
+            if(!same_type(ltype, rtype)) {
+                // 报错 类型5: 赋值号两边的表达式类型不匹配
+                sdt_error(5, root->Tree_lineno, "=");
+            }
+        }
+        return NULL;
     }
 
 }
@@ -733,6 +879,11 @@ expType_t sdt_Exp(TreeNode_t* root) {
             }
 
             ltype.size++;
+            
+            if(ltype.size == ltype.type->u.array.size) {
+                expType_t ret = {ltype.type->u.array.elem, 0};
+                return ret;
+            }
 
             return ltype;
         }

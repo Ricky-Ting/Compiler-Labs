@@ -120,6 +120,29 @@ Symbol findType(char* name) {
     return cur;
 }
 
+/* 带作用域 */
+int existSymbol(char* name) {
+    int top = stack.top - 1;
+    int slot = hash_pjw(name);
+    Symbol cur = typeTable[slot];
+    while(cur != NULL && !IS_EQUAL(name, cur->name)) {
+        cur = cur->next;
+    }
+
+    if(cur == NULL)
+        return 0;
+    
+    while(cur != NULL) {
+        cur = cur->area_prev;
+    }
+    if(cur == stack.arr[top]) {
+        return 1;
+    } else {
+        return 0;
+    }
+
+}
+
 
 /* 压入新的作用域 */
 void stack_push() {

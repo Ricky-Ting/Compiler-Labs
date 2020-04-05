@@ -55,6 +55,7 @@ void insertSymbol(Symbol sym);
 void insertType(Symbol sym);
 Symbol findSymbol(char* name);
 Symbol findType(char* name);
+int existSymbol(char* name);
 void stack_push();
 void stack_pop();
 void *myAlloc(int sz);
