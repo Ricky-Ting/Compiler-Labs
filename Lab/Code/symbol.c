@@ -5,8 +5,8 @@
 
 //#define DEBUG
 
-Symbol symbolTable[HASH_TABLE_SZ]; // For symbol with variables
-Symbol typeTable[HASH_TABLE_SZ]; // For struct type
+Symbol symbolTable[HASH_TABLE_SZ+1]; // For symbol with variables
+Symbol typeTable[HASH_TABLE_SZ+1]; // For struct type
 
 Node FuncHead;
 
