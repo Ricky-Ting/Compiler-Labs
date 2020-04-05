@@ -4,7 +4,7 @@
 #include <string.h>
 
 #define HASH_TABLE_SZ 0x3fff
-#define MAX_RECUR 20  // 作用域最大嵌套深度
+#define MAX_RECUR 200  // 作用域最大嵌套深度
 
 typedef struct Type_* Type;
 typedef struct Type_ Type_t;
