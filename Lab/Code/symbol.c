@@ -8,6 +8,8 @@
 Symbol symbolTable[HASH_TABLE_SZ]; // For symbol with variables
 Symbol typeTable[HASH_TABLE_SZ]; // For struct type
 
+Node FuncHead;
+
 /* 为了实现作用域 */
 struct {
     Symbol arr[MAX_RECUR];
@@ -33,6 +35,7 @@ unsigned int hash_pjw(char* name) {
 void initTables() {
     initSymbolTable();
     initTypeTable();
+    FuncHead = NULL;
 }
 
 
@@ -206,3 +209,49 @@ void *myAlloc(int sz) {
     }
     return ptr;
 }
+
+void insertFunc(char* name, int lineno) {
+    Node node = myAlloc(sizeof(Node_t));
+    strncpy(node->name, name, 55);
+    node->lineno = lineno;
+    node->prev = node->next = NULL;
+    if(FuncHead == NULL) {
+        FuncHead = node;
+    } else {
+        node->next = FuncHead;
+        FuncHead->prev = node;
+        FuncHead = node;
+    }
+    return;
+}
+
+int deleteFunc(char* name) {
+    Node cur = FuncHead;
+    while(cur != NULL && !IS_EQUAL(cur->name, name)) {
+        cur = cur->next;
+    }
+    if(cur == NULL)
+        return 0;
+
+    if(cur->prev != NULL) {
+        cur->prev->next = cur->next;
+    }
+    if(cur->next != NULL) {
+        cur->next->prev = cur->prev;
+    }
+    if(FuncHead == cur) {
+        FuncHead = cur->next;
+    }
+    free(cur);
+    return 1;
+}
+
+void showFunc() {
+    Node cur = FuncHead;
+    while(cur != NULL) {
+        fprintf(stderr, "Error type %d at Line %d: Undefined function %s\n", 18, cur->lineno, cur->name);
+        cur = cur->next;
+    }
+}
+
+

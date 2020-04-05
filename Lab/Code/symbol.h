@@ -59,5 +59,21 @@ int existSymbol(char* name);
 void stack_push();
 void stack_pop();
 void *myAlloc(int sz);
+
+// 函数未定义表
+void insertFunc(char* name, int lineno);
+int deleteFunc(char* name);
+void showFunc();
+typedef struct Node_ Node_t;
+typedef Node_t* Node;
+
+struct Node_ {
+    Node prev;
+    Node next;
+    char name[55];
+    int lineno;
+};
+
+
 //void freeSymbol(Symbol sym);
 #endif

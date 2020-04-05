@@ -128,6 +128,7 @@ void sdt_Program(TreeNode_t* root) {
         return;
     if(root->Tree_child[0] != NULL)
         sdt_ExtDefList(root->Tree_child[0]);
+    showFunc(); // 打印所有未定义函数
     return;
 }
 
@@ -184,6 +185,7 @@ void sdt_ExtDef(TreeNode_t *root) {
 
         if(findSymbol(sym->name) == NULL) {
             insertSymbol(sym);
+            insertFunc(sym->name, root->Tree_lineno);
         } else {
             // 判断是否是同一类型函数
             if(!_same_type(sym->type, findSymbol(sym->name)->type)) {
@@ -195,6 +197,10 @@ void sdt_ExtDef(TreeNode_t *root) {
         }
 
         if(IS_EQUAL(root->Tree_child[2]->Tree_token, "CompSt")) {
+            if(!deleteFunc(sym->name)) {
+                // 报错 类型4: 函数出现重复定义
+                sdt_error(4, root->Tree_lineno, "Redefined");
+            }
             stack_push();
             sdt_FunDec(root->Tree_child[1], type);
             sdt_CompSt(root->Tree_child[2], type);
