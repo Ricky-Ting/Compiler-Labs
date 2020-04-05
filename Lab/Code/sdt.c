@@ -102,8 +102,10 @@ void sdt_init() {
 
     exp_INT.type = &type_INT;
     exp_INT.size = 0;
+    exp_INT.var = 0;
     exp_FLOAT.type = &type_FLOAT;
     exp_FLOAT.size = 0;
+    exp_FLOAT.var = 0;
 
     random_name[0] = '#';
     random_name[1] = 'A';
@@ -488,7 +490,7 @@ void sdt_Stmt(TreeNode_t* root, Type retType) {
         // Stmt -> RETURN Exp SEMI
         assert(root->Tree_child[1] != NULL);
         expType_t type = sdt_Exp(root->Tree_child[1]);
-        expType_t exp_retType = {retType, 0};
+        expType_t exp_retType = {retType, 0, 0};
         if(!same_type(type, exp_retType)) {
             // 返回值类型不统一
             // 报错 类型8: return语句的返回类型与函数定义的返回类型不匹配
@@ -636,7 +638,7 @@ FieldList sdt_Dec(TreeNode_t* root, Type baseType, int inStruct) {
         
         if(root->num_child == 3) {
             // 判断左右类型是否相同
-            expType_t ltype = {sym->type, 0};
+            expType_t ltype = {sym->type, 0, 0};
             expType_t rtype = sdt_Exp(root->Tree_child[2]);
             if(!same_type(ltype, rtype)) {
                 // 报错 类型5: 赋值号两边的表达式类型不匹配
@@ -690,8 +692,11 @@ expType_t sdt_Exp(TreeNode_t* root) {
                     sdt_error(5, root->Tree_lineno, "Type mismatched for assignment");
                     return exp_INT;
                 }
-                // TODO 报错 左值
-
+                if(!ltype.var) {
+                    // 报错 类型6: 赋值号左边出现一个只有右值得表达式
+                    sdt_error(6, root->Tree_lineno, "Dism");
+                    return exp_INT;
+                }
                 return ltype;
             } else {
                 if(!same_type(ltype, rtype)) {
@@ -714,7 +719,7 @@ expType_t sdt_Exp(TreeNode_t* root) {
                     sdt_error(7, root->Tree_lineno, "Unmatched operands");
                     return exp_INT;
                 }
-
+                ltype.var = 0;
                 return ltype;
             }
             
@@ -745,14 +750,16 @@ expType_t sdt_Exp(TreeNode_t* root) {
                 return exp_INT;
             }
             // 函数调用成功，Exp为返回值类型
-            expType_t type = {sym->type->u.func.ret, 0};
+            expType_t type = {sym->type->u.func.ret, 0, 0};
             return type;
 
         }
 
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "LP")) {
             // Exp -> LP Exp RP
-            return sdt_Exp(root->Tree_child[1]);
+            expType_t type = sdt_Exp(root->Tree_child[1]);
+            type.var  = 0;
+            return type;
         }
 
         if(IS_EQUAL(root->Tree_child[1]->Tree_token, "DOT")) {
@@ -780,7 +787,7 @@ expType_t sdt_Exp(TreeNode_t* root) {
                 sdt_error(14, root->Tree_lineno, "Undefined field");
                 return exp_INT;
             }
-            expType_t type = {field->type, 0};
+            expType_t type = {field->type, 0, 1};
 
             return type;
         }
@@ -803,6 +810,7 @@ expType_t sdt_Exp(TreeNode_t* root) {
                 sdt_error(7, root->Tree_lineno, "Unmacthed");
                 return exp_INT;
             }
+            type.var = 0;
             return type;
         }
 
@@ -816,6 +824,7 @@ expType_t sdt_Exp(TreeNode_t* root) {
                 sdt_error(7, root->Tree_lineno, "Unmacthed");
                 return exp_INT;
             }
+            type.var = 0;
             return type;
         }
         // Shound't reach here!!!
@@ -853,7 +862,7 @@ expType_t sdt_Exp(TreeNode_t* root) {
             }
 
             // 函数调用成功，Exp为返回值类型
-            expType_t type = {sym->type->u.func.ret, 0};
+            expType_t type = {sym->type->u.func.ret, 0, 0};
             return type;
 
         }
@@ -883,6 +892,7 @@ expType_t sdt_Exp(TreeNode_t* root) {
                 expType_t ret = {ltype.type->u.array.elem, 0};
                 return ret;
             }
+            ltype.var = 1;
 
             return ltype;
         }
@@ -904,7 +914,7 @@ expType_t sdt_Exp(TreeNode_t* root) {
                 sdt_error(1, root->Tree_lineno, "Variable");
                 return exp_INT;
             }
-            expType_t type = {sym->type, 0};
+            expType_t type = {sym->type, 0, 1};
             return type;
         }
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "INT")) {

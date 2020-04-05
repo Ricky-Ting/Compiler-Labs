@@ -6,7 +6,8 @@
 
 struct expType_ {
     Type type;
-    int size;
+    int size;  // 数组
+    int var; // 是否可以作为左值
 };
 
 typedef struct expType_ expType_t;
