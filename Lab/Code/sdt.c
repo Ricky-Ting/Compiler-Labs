@@ -952,7 +952,7 @@ expType_t sdt_Exp(TreeNode_t* root) {
             ltype.size++;
             
             if(ltype.size == ltype.type->u.array.size) {
-                expType_t ret = {ltype.type->u.array.elem, 0};
+                expType_t ret = {ltype.type->u.array.elem, 0, 1};
                 return ret;
             }
             ltype.var = 1;
