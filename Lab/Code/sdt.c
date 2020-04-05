@@ -98,11 +98,13 @@ int same_type(expType_t a, expType_t b) {
     if(a.type == NULL || b.type == NULL) 
         return 0;
 
+    //printf("%d %d \n", a.size, b.size);
+
     if(a.type->kind != b.type->kind)
         return 0;
 
     if(a.type->kind == ARRAY) {
-        if(!_same_type(a.type->u.array.elem, b.type->u.array.elem) || a.size != b.size) {
+        if(!_same_type(a.type->u.array.elem, b.type->u.array.elem) || a.type->u.array.size - a.size != b.type->u.array.size - b.size) {
             return 0;
         }
         return 1;
@@ -113,7 +115,7 @@ int same_type(expType_t a, expType_t b) {
 
 
 void sdt_error(int err, int lineno, char* s) {
-    fprintf(stderr, "Error type %d at Line %d: %s\n", err, lineno, errMessage[lineno-1]);
+    fprintf(stderr, "Error type %d at Line %d: %s.\n", err, lineno, errMessage[err-1]);
 }
 
 void sdt_init() {

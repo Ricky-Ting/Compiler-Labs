@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
-//#define DEBUG
+#define DEBUG
 
 Symbol symbolTable[HASH_TABLE_SZ]; // For symbol with variables
 Symbol typeTable[HASH_TABLE_SZ]; // For struct type
@@ -249,7 +249,7 @@ int deleteFunc(char* name) {
 void showFunc() {
     Node cur = FuncHead;
     while(cur != NULL) {
-        fprintf(stderr, "Error type %d at Line %d: Undefined function %s\n", 18, cur->lineno, cur->name);
+        fprintf(stderr, "Error type %d at Line %d: Undefined function %s.\n", 18, cur->lineno, cur->name);
         cur = cur->next;
     }
 }
