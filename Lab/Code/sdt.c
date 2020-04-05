@@ -562,6 +562,7 @@ expType_t sdt_Exp(TreeNode_t* root) {
                         sdt_error(7, root->Tree_lineno, "Unmatched operands");
                         return exp_INT;
                     }
+                    return exp_INT;
                 }
 
                 if(!same_type(ltype, exp_INT) && !same_type(rtype, exp_FLOAT)) {
@@ -570,14 +571,38 @@ expType_t sdt_Exp(TreeNode_t* root) {
                     return exp_INT;
                 }
 
-                // TODO 报错
+                return ltype;
             }
-
             
         }
 
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "ID")) {
             // Exp -> ID LP RP
+            char func_name[55];
+            strncpy(func_name, sdt_ID(root->Tree_child[0]), 55);
+            Symbol sym = findSymbol(func_name);
+            if(sym == NULL) {
+                // 函数未定义
+                // 报错 类型2: 函数在调用时未经定义
+                sdt_error(2, root->Tree_lineno, "Undefined func");
+                return exp_INT;
+            }
+
+            if(sym->type->kind != FUNC) {
+                // 非函数类型
+                // 报错 类型11: 对普通变量使用"(...)"或"()"操作符
+                sdt_error(11, root->Tree_lineno, "Func");
+                return exp_INT;
+            }
+            if(sym->type->u.func.params != NULL) {
+                // 参数不符合
+                // 报错 类型9: 函数调用时实参与形参的数目或类型不匹配
+                sdt_error(9, root->Tree_lineno, "Func");
+                return exp_INT;
+            }
+            // 函数调用成功，Exp为返回值类型
+            expType_t type = {sym->type->u.func.ret, 0};
+            return type;
 
         }
 
@@ -589,7 +614,31 @@ expType_t sdt_Exp(TreeNode_t* root) {
         if(IS_EQUAL(root->Tree_child[1]->Tree_token, "DOT")) {
             // Exp -> Exp DOT ID 
             // TODO 
-            return ;
+            expType_t struct_type = sdt_Exp(root->Tree_child[0]);
+            char field_name[55];
+            strncpy(field_name, sdt_ID(root->Tree_child[2]), 55);
+
+            if(struct_type.type->kind != STRUCTURE) {
+                // 非结构体变量
+                // 报错 类型13: 对非结构体型变量使用"."操作符
+                sdt_error(13, root->Tree_lineno, "STRUCT");
+                return exp_INT;
+            }
+
+            FieldList field = struct_type.type->u.structure;
+            while(field != NULL && !IS_EQUAL(field->name, field_name)) {
+                field  = field->tail;
+            }
+
+            if(field == NULL) {
+                // 结构体中没有当前域
+                // 报错 类型14: 访问结构体中未定义过的域。
+                sdt_error(14, root->Tree_lineno, "Undefined field");
+                return exp_INT;
+            }
+            expType_t type = {field->type, 0};
+
+            return type;
         }
 
         // Shound't reach here!!!
@@ -604,6 +653,12 @@ expType_t sdt_Exp(TreeNode_t* root) {
             // Exp -> MINUS Exp
             // TODO 确认类型 报错
             expType_t type = sdt_Exp(root->Tree_child[1]);
+            if(!same_type(type, exp_INT) && !same_type(type, exp_FLOAT)) {
+                // 非整数和浮点数
+                // 报错 类型7: 操作数类型不匹配或操作数类型与操作符不匹配
+                sdt_error(7, root->Tree_lineno, "Unmacthed");
+                return exp_INT;
+            }
             return type;
         }
 
@@ -611,6 +666,12 @@ expType_t sdt_Exp(TreeNode_t* root) {
             // Exp -> NOT Exp
             // TODO 确认类型 报错
             expType_t type = sdt_Exp(root->Tree_child[1]);
+            if(!same_type(type, exp_INT)) {
+                // 非整数
+                // 报错 类型7: 操作数类型不匹配或操作数类型与操作符不匹配
+                sdt_error(7, root->Tree_lineno, "Unmacthed");
+                return exp_INT;
+            }
             return type;
         }
         // Shound't reach here!!!
@@ -625,12 +686,55 @@ expType_t sdt_Exp(TreeNode_t* root) {
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "ID")) {
             // Exp -> ID LP Args RP
             // TODO
-            return ;
+            char func_name[55];
+            strncpy(func_name, sdt_ID(root->Tree_child[0]), 55);
+            Symbol sym = findSymbol(func_name);
+            if(sym == NULL) {
+                // 函数未定义
+                // 报错 类型2: 函数在调用时未经定义
+                sdt_error(2, root->Tree_lineno, "Undefined func");
+                return exp_INT;
+            }
+
+            if(sym->type->kind != FUNC) {
+                // 非函数类型
+                // 报错 类型11: 对普通变量使用"(...)"或"()"操作符
+                sdt_error(11, root->Tree_lineno, "Func");
+                return exp_INT;
+            }
+            // 参数不符合的报错留个Args解决：
+            if (!sdt_Args(root->Tree_child[2], sym->type->u.func.params)) {
+                return exp_INT;
+            }
+
+            // 函数调用成功，Exp为返回值类型
+            expType_t type = {sym->type->u.func.ret, 0};
+            return type;
+
         }
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "Exp")) {
             // Exp -> Exp LB Exp RB
             // TODO
-            return ;
+            expType_t ltype = sdt_Exp(root->Tree_child[0]);
+            expType_t rtype = sdt_Exp(root->Tree_child[2]);
+
+            if(ltype.type->kind != ARRAY || ltype.type->u.array.size >= ltype.size) {
+                // 不是数组类型 或者维度不对
+                // 报错 类型10: 对非数组型变量使用"[...]"操作符
+                sdt_error(10, root->Tree_lineno, "ARRAY");
+                return exp_INT;
+            }
+
+            if(!same_type(rtype, exp_INT)) {
+                // 下标非整数
+                // 报错 类型12: 数组访问操作符"[...]"中出现非整数
+                sdt_error(12, root->Tree_lineno, "ARRAY");
+                return exp_INT;
+            }
+
+            ltype.size++;
+
+            return ltype;
         }
         // Shound't reach here!!!
         assert(0);
@@ -641,22 +745,25 @@ expType_t sdt_Exp(TreeNode_t* root) {
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "ID")) {
             // Exp -> ID
             // TODO 查找符号表 获取ID的类型
-            
-            return;
+            char name[55];
+            strncpy(name, sdt_ID(root->Tree_child[0]), 55);
+            Symbol sym = findSymbol(name);
+            if(sym == NULL) {
+                // 变量未定义
+                // 报错 类型1: 变量在使用时未经定义
+                sdt_error(1, root->Tree_lineno, "Variable");
+                return exp_INT;
+            }
+            expType_t type = {sym->type, 0};
+            return type;
         }
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "INT")) {
             // Exp -> INT
-            expType_t type;
-            type.type = &type_INT;
-            type.size = 0;
-            return type;
+            return exp_INT;
         }
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "FLOAT")) {
             // Exp -> FLOAT
-            expType_t type;
-            type.type = &type_FLOAT;
-            type.size = 0;
-            return type;
+            return exp_FLOAT;
         }
         // Shound't reach here!!!
         assert(0);
@@ -667,7 +774,7 @@ expType_t sdt_Exp(TreeNode_t* root) {
 }
 
 
-void sdt_Args(TreeNode_t* root, FieldList field) {
+int sdt_Args(TreeNode_t* root, FieldList field) {
     /*
     * Args -> Exp COMMA Args
     * Args -> Exp
@@ -682,19 +789,20 @@ void sdt_Args(TreeNode_t* root, FieldList field) {
     if(field == NULL || !same_type(type, type2)) {
         // 报错: 类型9: 函数调用时实参与形参的数目或类型不匹配
         sdt_error(9, root->Tree_lineno, "Args doesn't match");
-        return;
+        return 0;
     }
     
     if(root->num_child == 1) {
         if(field->tail != NULL) {
             // 报错: 类型9: 函数调用时实参与形参的数目或类型不匹配
             sdt_error(9, root->Tree_lineno, "Args doesn't match");
+            return 0;
         }
-        return;
+        return 1;
     }
 
     assert(root->Tree_child[2] != NULL);
-    sdt_Args(root->Tree_child[2], field->tail);
+    return sdt_Args(root->Tree_child[2], field->tail);
 }
 
 
