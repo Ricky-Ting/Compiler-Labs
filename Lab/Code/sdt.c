@@ -10,6 +10,28 @@ expType_t exp_INT, exp_FLOAT;
 char random_name[55];
 int pos;
 
+char* errMessage[19] = {
+    "Undefined variable",
+    "Undefined function",
+    "Redefined variable",
+    "Redefined function",
+    "Type mismatched for assignment",
+    "The left-hand side of an assignment must be a variable",
+    "Type mismatched for operands",
+    "Type mismatched for return",
+    "Function args don't match",
+    "Not an array",
+    "Not a function",
+    "Not an integer",
+    "Illegal use of \".\"",
+    "Non-existent field",
+    "Redefined field",
+    "Duplicated name",
+    "Undefined structure",
+    "Undefined function",
+    "Inconsistent declaration of function"
+};
+
 int _same_type(Type a, Type b) {
     if(a == NULL && b == NULL)
         return 1;
@@ -91,7 +113,7 @@ int same_type(expType_t a, expType_t b) {
 
 
 void sdt_error(int err, int lineno, char* s) {
-    fprintf(stderr, "Error type %d at Line %d: %s\n", err, lineno, s);
+    fprintf(stderr, "Error type %d at Line %d: %s\n", err, lineno, errMessage[lineno-1]);
 }
 
 void sdt_init() {
@@ -221,7 +243,7 @@ void sdt_ExtDecList(TreeNode_t *root, Type baseType) {
    assert(root->num_child == 1 || root->num_child == 3);
    
    assert(root->Tree_child[0] != NULL);
-   sdt_VarDec(root->Tree_child[0], baseType, 0); // 0表示数组的维度，最开始是0维的
+   sdt_VarDec(root->Tree_child[0], baseType, 0, 0); // 0表示数组的维度，最开始是0维的
 
    if(root->num_child == 1) 
        return;
@@ -323,7 +345,7 @@ char* sdt_Tag(TreeNode_t* root) {
 
 
 /* Declarators */
-Symbol sdt_VarDec(TreeNode_t* root, Type baseType, int size) {
+Symbol sdt_VarDec(TreeNode_t* root, Type baseType, int size, int inStruct) {
     /* 
     * VarDec -> ID
     * VarDec -> VarDec LB INT RB
@@ -351,8 +373,15 @@ Symbol sdt_VarDec(TreeNode_t* root, Type baseType, int size) {
         // TODO 结构体名字重复待考虑
         if(existSymbol(sym->name) || findType(sym->name) != NULL) {
             // 变量重复定义
-            // 报错 类型3: 变量出现重复定义，或变量与前面定义过的结构体名字重复
-            sdt_error(3, root->Tree_lineno, "Variable");
+
+            if(inStruct) {
+                // 报错 类型15: 结构体中域名重复定义
+                sdt_error(15, root->Tree_lineno, "Variable");
+            } else {
+                // 报错 类型3: 变量出现重复定义，或变量与前面定义过的结构体名字重复
+                sdt_error(3, root->Tree_lineno, "Variable");
+            }
+
             // TODO 这次是否直接返回 待考虑
         } else {
             insertSymbol(sym);
@@ -360,7 +389,7 @@ Symbol sdt_VarDec(TreeNode_t* root, Type baseType, int size) {
         return sym;
     } else {
         assert(root->Tree_child[0] != NULL);
-        return sdt_VarDec(root->Tree_child[0], baseType, size+1);
+        return sdt_VarDec(root->Tree_child[0], baseType, size+1, inStruct);
     }
 }
 
@@ -423,7 +452,7 @@ FieldList sdt_ParamDec(TreeNode_t* root) {
     assert(root->Tree_child[0] != NULL && root->Tree_child[1] != NULL);
 
     Type type = sdt_Specifier(root->Tree_child[0]);
-    Symbol sym = sdt_VarDec(root->Tree_child[1], type, 0);
+    Symbol sym = sdt_VarDec(root->Tree_child[1], type, 0, 0);
 
     FieldList field = myAlloc(sizeof(FieldList_t));
     strncpy(field->name, sym->name, 55);
@@ -626,7 +655,7 @@ FieldList sdt_Dec(TreeNode_t* root, Type baseType, int inStruct) {
     assert(root->num_child == 1 || root->num_child == 3);
     
     assert(root->Tree_child[0] != NULL);
-    Symbol sym = sdt_VarDec(root->Tree_child[0], baseType, 0);
+    Symbol sym = sdt_VarDec(root->Tree_child[0], baseType, 0, inStruct);
 
     if(inStruct == 1) {
         FieldList field = myAlloc(sizeof(FieldList_t));

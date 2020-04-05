@@ -13,8 +13,6 @@ struct expType_ {
 typedef struct expType_ expType_t;
 typedef expType_t* expType;
 
-
-
 #define TYPE_INT 0
 #define TYPE_FLOAT 1
 
@@ -36,7 +34,7 @@ char* sdt_OptTag(TreeNode_t* root);
 char* sdt_Tag(TreeNode_t* root);
 
 /* Declarators */
-Symbol sdt_VarDec(TreeNode_t* root, Type baseType, int size);
+Symbol sdt_VarDec(TreeNode_t* root, Type baseType, int size, int inStruct);
 Symbol sdt_FunDec(TreeNode_t* root, Type retType);
 FieldList sdt_VarList(TreeNode_t* root);
 FieldList sdt_ParamDec(TreeNode_t* root);
