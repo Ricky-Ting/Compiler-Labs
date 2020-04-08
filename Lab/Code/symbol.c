@@ -44,8 +44,8 @@ void initSymbolTable() {
     for(int i=0; i<HASH_TABLE_SZ; ++i) {
         symbolTable[i] = NULL;
     }
-    stack.top = 0;
-    //stack.area_tail[0] = NULL;
+    stack.top = 1;
+    stack.area_tail[0] = NULL;
 }
 
 /* 初始化类型表 */
@@ -83,6 +83,7 @@ void insertSymbol(Symbol sym) {
 
     // 更新栈
     int top = stack.top - 1;
+    //printf("Here top is %d\n", top);
     if(stack.arr[top] == NULL) {
         // 当前作用域里的第一个符号
         stack.arr[top] = sym;
