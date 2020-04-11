@@ -156,6 +156,8 @@ void sdt_Program(TreeNode_t* root) {
     /*
     * Program -> ExtDefList
     */
+    if(root == NULL)
+        return;
     if(root->num_child == 0)
         return;
     if(root->Tree_child[0] != NULL)
