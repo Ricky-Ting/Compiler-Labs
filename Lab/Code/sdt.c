@@ -38,6 +38,9 @@ void helper(TreeNode_t* root) {
 }
 
 int _same_type(Type a, Type b) {
+    if(a==b)
+        return 1;
+
     if(a == NULL && b == NULL)
         return 1;
     if(a == NULL || b == NULL) 
