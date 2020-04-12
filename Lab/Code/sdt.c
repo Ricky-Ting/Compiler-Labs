@@ -814,8 +814,10 @@ expType_t sdt_Exp(TreeNode_t* root) {
             if(sym->type->u.func.params != NULL) {
                 // 参数不符合
                 // 报错 类型9: 函数调用时实参与形参的数目或类型不匹配
+                // Modified
                 sdt_error(9, root->Tree_lineno, "Func");
-                return exp_INT;
+                expType_t type = {sym->type->u.func.ret, 0, 0};
+                return type;
             }
             // 函数调用成功，Exp为返回值类型
             expType_t type = {sym->type->u.func.ret, 0, 0};
