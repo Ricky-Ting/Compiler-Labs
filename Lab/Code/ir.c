@@ -13,6 +13,8 @@ int pos;
 int temp_counter = 0;
 char temp_name[55];
 
+InterCodes head, tail; // 整个代码块的head和tail
+
 void helper(TreeNode_t* root) {
     //fprintf(stderr, "In %s\n", root->Tree_token);
 }
@@ -86,6 +88,20 @@ char* get_temp() {
 
 }
 
+void append_code(InterCodes codes) {
+    if(codes == NULL) return;
+    if(head == NULL) {
+        head = codes;
+    } else {
+        tail->next = codes;
+    }
+    InterCodes cur = codes;
+    while(cur->next != NULL) 
+        cur = cur->next;
+    tail = cur;
+    return;
+}
+
 void ir_init() {
 
     random_name[0] = '#';
@@ -94,6 +110,10 @@ void ir_init() {
     pos = 1;
 
     initTables();
+    
+    head = tail = NULL;
+
+    // Add read and write
     return;
 }
 
