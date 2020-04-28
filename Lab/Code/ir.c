@@ -5,10 +5,13 @@
 #include "symbol.h"
 #include "ir.h"
 
-Type_t type_INT, type_FLOAT;
+//Type_t type_INT, type_FLOAT;
 
 char random_name[55];
 int pos;
+
+int temp_counter = 0;
+char temp_name[55];
 
 void helper(TreeNode_t* root) {
     //fprintf(stderr, "In %s\n", root->Tree_token);
@@ -75,6 +78,12 @@ char* get_name() {
         random_name[pos]++;
     }
     return random_name;
+}
+
+char* get_temp() {
+    snprintf(temp_name, "t%d", 55);
+    return temp_name;
+
 }
 
 void ir_init() {
