@@ -7,7 +7,6 @@
 
 struct expType_ {
     Type type;
-    int size;  // 数组
     int var; // 是否可以作为左值
 };
 
