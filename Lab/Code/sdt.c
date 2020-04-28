@@ -7,6 +7,7 @@
 
 Type_t type_INT, type_FLOAT;
 expType_t exp_INT, exp_FLOAT;
+
 char random_name[55];
 int pos;
 
@@ -32,7 +33,6 @@ char* errMessage[19] = {
     "Inconsistent declaration of function"
 };
 
-
 void helper(TreeNode_t* root) {
     //fprintf(stderr, "In %s\n", root->Tree_token);
 }
@@ -53,7 +53,7 @@ int _same_type(Type a, Type b) {
         return (a->u.basic == b->u.basic);
     
     if(a->kind == ARRAY) 
-        return _same_type(a->u.array.elem, b->u.array.elem) && (a->u.array.size == b->u.array.size);
+        return _same_type(a->u.array.elem, b->u.array.elem);
     
     if(a->kind == STRUCTURE) {
         FieldList cur1 = a->u.structure;
@@ -89,6 +89,11 @@ int _same_type(Type a, Type b) {
     assert(0);    
 }
 
+int same_type(expType_t a, expType_t b) {
+    return _same_type(a.type, b.type);
+}
+
+
 char* get_name() {
     if(random_name[pos] == 'Z') {
         pos++;
@@ -99,27 +104,6 @@ char* get_name() {
     }
     return random_name;
 }
-
-int same_type(expType_t a, expType_t b) {
-    if(a.type == NULL && b.type == NULL)
-        return 1;
-    if(a.type == NULL || b.type == NULL) 
-        return 0;
-
-    //printf("%d %d \n", a.size, b.size);
-
-    if(a.type->kind != b.type->kind)
-        return 0;
-
-    if(a.type->kind == ARRAY) {
-        if(!_same_type(a.type->u.array.elem, b.type->u.array.elem) || a.type->u.array.size - a.size != b.type->u.array.size - b.size) {
-            return 0;
-        }
-        return 1;
-    }
-    return _same_type(a.type, b.type);
-}
-
 
 
 void sdt_error(int err, int lineno, char* s) {
@@ -162,7 +146,8 @@ void sdt_Program(TreeNode_t* root) {
         return;
     if(root->Tree_child[0] != NULL)
         sdt_ExtDefList(root->Tree_child[0]);
-    showFunc(); // 打印所有未定义函数
+
+    showFunc(); // 打印所有未定义函数 Not required in Lab3
     return;
 }
 
@@ -377,15 +362,8 @@ Symbol sdt_VarDec(TreeNode_t* root, Type baseType, int size, int inStruct) {
     
     if(root->num_child == 1) {
         assert(root->Tree_child[0] != NULL);
-        Type type = NULL;
-        if(size == 0) {
-            type = baseType;
-        } else {
-            type = myAlloc(sizeof(Type_t));
-            type->kind = ARRAY;
-            type->u.array.elem = baseType;
-            type->u.array.size = size;
-        }
+        Type type = baseType;
+        
         Symbol sym = myAlloc(sizeof(Symbol_t));
         strncpy(sym->name, sdt_ID(root->Tree_child[0]), 55);
         sym->type = type;
@@ -411,7 +389,12 @@ Symbol sdt_VarDec(TreeNode_t* root, Type baseType, int size, int inStruct) {
         return sym;
     } else {
         assert(root->Tree_child[0] != NULL);
-        return sdt_VarDec(root->Tree_child[0], baseType, size+1, inStruct);
+        Type newType = myAlloc(sizeof(Type_t));
+        newType->kind = ARRAY;
+        newType->u.array.size = root->Tree_child[2]->val_UINT;
+        newType->u.array.elem = baseType;
+
+        return sdt_VarDec(root->Tree_child[0], newType, size+1, inStruct);
     }
 }
 
@@ -942,7 +925,7 @@ expType_t sdt_Exp(TreeNode_t* root) {
             expType_t ltype = sdt_Exp(root->Tree_child[0]);
             expType_t rtype = sdt_Exp(root->Tree_child[2]);
 
-            if(ltype.type->kind != ARRAY || ltype.type->u.array.size <= ltype.size) {
+            if(ltype.type->kind != ARRAY) {
                 // 不是数组类型 或者维度不对
                 // 报错 类型10: 对非数组型变量使用"[...]"操作符
                 sdt_error(10, root->Tree_lineno, "ARRAYH");
@@ -956,12 +939,8 @@ expType_t sdt_Exp(TreeNode_t* root) {
                 return exp_INT;
             }
 
-            ltype.size++;
-            
-            if(ltype.size == ltype.type->u.array.size) {
-                expType_t ret = {ltype.type->u.array.elem, 0, 1};
-                return ret;
-            }
+            ltype.type = ltype.type->u.array.elem;
+
             ltype.var = 1;
 
             return ltype;

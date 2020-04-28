@@ -4,6 +4,7 @@
 #include "Tree.h"
 #include "symbol.h"
 
+
 struct expType_ {
     Type type;
     int size;  // 数组
@@ -59,6 +60,5 @@ int sdt_Args(TreeNode_t* root, FieldList field);
 /* Terminator */
 char* sdt_ID(TreeNode_t* root);
 int sdt_TYPE(TreeNode_t* root);
-
 
 #endif
