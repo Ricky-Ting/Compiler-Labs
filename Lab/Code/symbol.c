@@ -10,6 +10,8 @@ Symbol typeTable[HASH_TABLE_SZ+1]; // For struct type
 
 Node FuncHead;
 
+static int var_counter = 0;
+
 /* 为了实现作用域 */
 struct {
     Symbol arr[MAX_RECUR];
@@ -47,6 +49,7 @@ void initSymbolTable() {
     }
     stack.top = 1;
     stack.area_tail[0] = NULL;
+    var_counter = 0;
 }
 
 /* 初始化类型表 */
@@ -65,6 +68,8 @@ void insertSymbol(Symbol sym) {
             fprintf(stderr, "Array size is %d\n", sym->type->u.array.size);
         }
     #endif
+
+    sym->var_no = var_counter++;
 
     // 确定在哪个slot
     int slot = hash_pjw(sym->name);

@@ -41,7 +41,7 @@ struct FieldList_ {
 struct Symbol_ {
     char name[55];
     Type type;
-    int lineno;
+    int var_no;
     Symbol prev;
     Symbol next;
     Symbol area_prev;
