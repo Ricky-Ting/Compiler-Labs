@@ -21,58 +21,6 @@ void helper(TreeNode_t* root) {
     //fprintf(stderr, "In %s\n", root->Tree_token);
 }
 
-int _same_type(Type a, Type b) {
-    if(a==b)
-        return 1;
-
-    if(a == NULL && b == NULL)
-        return 1;
-    if(a == NULL || b == NULL) 
-        return 0;
-    
-    if(a->kind != b->kind ) 
-        return 0;
-    
-    if(a->kind == BASIC) 
-        return (a->u.basic == b->u.basic);
-    
-    if(a->kind == ARRAY) 
-        return _same_type(a->u.array.elem, b->u.array.elem);
-    
-    if(a->kind == STRUCTURE) {
-        FieldList cur1 = a->u.structure;
-        FieldList cur2 = b->u.structure;
-        while(cur1 != NULL && cur2 != NULL) {
-            if(!_same_type(cur1->type, cur2->type)) 
-                return 0;
-            cur1 = cur1->tail;
-            cur2 = cur2->tail;
-        }
-        if(cur1 != NULL || cur2 != NULL)
-            return 0;
-        return 1;
-    }
-
-    if(a->kind == FUNC) {
-        if(!_same_type(a->u.func.ret, b->u.func.ret))
-            return 0;
-        FieldList cur1 = a->u.func.params;
-        FieldList cur2 = b->u.func.params;
-        while(cur1 != NULL && cur2 != NULL) {
-            if(!_same_type(cur1->type, cur2->type)) 
-                return 0;
-            cur1 = cur1->tail;
-            cur2 = cur2->tail;
-        }
-        if(cur1 != NULL || cur2 != NULL)
-            return 0;
-        return 1;
-    }
-
-    // Shound't reach here!!!
-    assert(0);    
-}
-
 char* get_name() {
     if(random_name[pos] == 'Z') {
         pos++;
@@ -119,6 +67,22 @@ void append_code(InterCode code) {
     append_codes(codes);
 }
 
+int get_size(Type type) {
+    assign(type != NULL);
+    if(type->kind == BASIC)
+        return 4;
+    else if(type->kind == ARRAY)
+        return type->u.array.totalsize;
+    else if(type->kind == STRUCTURE)  {
+        if(type->u.structure == NULL)
+            return 0;
+        else 
+            return type->u.structure->totalsize;
+    } else {
+        assign(0);
+    }
+}
+
 void ir_init() {
 
     random_name[0] = '#';
@@ -137,6 +101,7 @@ void ir_init() {
     OP_ONE.u.value = 1;
 
     // Add read and write
+    // TODO
     return;
 }
 
@@ -253,7 +218,7 @@ void ir_ExtDecList(TreeNode_t *root, Type baseType) {
 
 /* Specifiers */
 
-Type sdt_Specifier(TreeNode_t *root) {
+Type ir_Specifier(TreeNode_t *root) {
     helper(root);
     /*
         Specifier -> TYPE
@@ -275,7 +240,7 @@ Type sdt_Specifier(TreeNode_t *root) {
     }
 }
 
-Type sdt_StructSpecifier(TreeNode_t* root) {
+Type ir_StructSpecifier(TreeNode_t* root) {
     helper(root);
     /* 
     * StructSpecifier -> STRUCT OptTag LC DefList RC
@@ -308,8 +273,14 @@ Type sdt_StructSpecifier(TreeNode_t* root) {
             strncpy(sym->name, sdt_OptTag(root->Tree_child[1]), 55);
         }
 
-        if(root->Tree_child[3] != NULL)
-            type->u.structure = sdt_DefList(root->Tree_child[3], 1);
+        if(root->Tree_child[3] != NULL) {
+            type->u.structure = ir_DefList(root->Tree_child[3], 1);
+            
+            FieldList cur = type->u.structure;
+            while(cur->tail != NULL)
+                cur = cur->tail;
+            type->u.structure->totalsize = cur->offset + cur->size;
+        }
 
         if(findSymbol(sym->name) != NULL || findType(sym->name) != NULL) {
             // shouldn't reach here!!!
@@ -375,6 +346,7 @@ Symbol ir_VarDec(TreeNode_t* root, Type baseType, int size, int inStruct) {
         newType->kind = ARRAY;
         newType->u.array.size = root->Tree_child[2]->val_UINT;
         newType->u.array.elem = baseType;
+        newType->u.array.totalsize = newType->u.array.size * get_size(baseType);
 
         return ir_VarDec(root->Tree_child[0], newType, size+1, inStruct);
     }
@@ -633,7 +605,7 @@ void ir_Stmt(TreeNode_t* root, Type retType) {
 
 
 /* Local Definitions */
-FieldList ir_DefList(TreeNode_t* root, int inStruct) {
+FieldList ir_DefList(TreeNode_t* root, int inStruct, int offset) {
     helper(root);
     /* 
     * DefList -> Def DefList 
@@ -643,8 +615,9 @@ FieldList ir_DefList(TreeNode_t* root, int inStruct) {
     assert(root->num_child == 2);
 
     if(inStruct == 1) {
-        FieldList field = ir_Def(root->Tree_child[0], inStruct); 
+        FieldList field = ir_Def(root->Tree_child[0], inStruct, offset); 
         if(root->Tree_child[1] != NULL) {
+            // TODO
             FieldList next_field = ir_DefList(root->Tree_child[1], inStruct);
             FieldList cur = field;
             while(cur->tail != NULL)
@@ -661,7 +634,7 @@ FieldList ir_DefList(TreeNode_t* root, int inStruct) {
     }
 }
 
-FieldList ir_Def(TreeNode_t* root, int inStruct) {
+FieldList ir_Def(TreeNode_t* root, int inStruct, int offset) {
     helper(root);
     /*
     * Def -> Specifier DecList SEMI
@@ -673,10 +646,11 @@ FieldList ir_Def(TreeNode_t* root, int inStruct) {
     Type type = ir_Specifier(root->Tree_child[0]);
 
     assert(root->Tree_child[1] != NULL);
-    return ir_DecList(root->Tree_child[1], type, inStruct);
+
+    return ir_DecList(root->Tree_child[1], type, inStruct, offset);
 }
 
-FieldList ir_DecList(TreeNode_t* root, Type baseType, int inStruct) {
+FieldList ir_DecList(TreeNode_t* root, Type baseType, int inStruct, int offset) {
     helper(root);
     /* 
     * DecList -> Dec
@@ -688,11 +662,12 @@ FieldList ir_DecList(TreeNode_t* root, Type baseType, int inStruct) {
     assert(root->Tree_child[0] != NULL);
 
     if(inStruct == 1) {
-        FieldList field = ir_Dec(root->Tree_child[0], baseType, inStruct);
+        FieldList field = ir_Dec(root->Tree_child[0], baseType, inStruct, offset);
+        offset += field->size; // TODO
         field->tail = NULL;
         if(root->num_child != 1) {
             assert(root->Tree_child[2] != NULL);
-            FieldList next_field = ir_DecList(root->Tree_child[2], baseType, inStruct);
+            FieldList next_field = ir_DecList(root->Tree_child[2], baseType, inStruct, offset);
             FieldList cur = field;
             while(cur->tail != NULL)
                 cur = cur->tail;
@@ -700,10 +675,10 @@ FieldList ir_DecList(TreeNode_t* root, Type baseType, int inStruct) {
         }
         return field;
     } else {
-        ir_Dec(root->Tree_child[0], baseType, inStruct);
+        ir_Dec(root->Tree_child[0], baseType, inStruct, offset);
         if(root->num_child != 1) {
             assert(root->Tree_child[2] != NULL);
-            ir_DecList(root->Tree_child[2], baseType, inStruct);
+            ir_DecList(root->Tree_child[2], baseType, inStruct, offset);
         }
         return NULL;
 
@@ -712,7 +687,7 @@ FieldList ir_DecList(TreeNode_t* root, Type baseType, int inStruct) {
 
 }
 
-FieldList ir_Dec(TreeNode_t* root, Type baseType, int inStruct) {
+FieldList ir_Dec(TreeNode_t* root, Type baseType, int inStruct, int offset, int inc) {
     helper(root);
     /*
     * Dec -> VarDec
@@ -729,6 +704,8 @@ FieldList ir_Dec(TreeNode_t* root, Type baseType, int inStruct) {
         field->tail = NULL;
         strncpy(field->name, sym->name, 55);
         field->type = sym->type;
+        field->offset = offset;
+        field->size = get_size(sym->type);
 
         if(root->num_child == 3) {
             // 结构体里面不能赋值

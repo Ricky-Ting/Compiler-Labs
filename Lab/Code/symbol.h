@@ -27,7 +27,7 @@ struct Type_ {
         // 结构体类型信息是一个链表
         FieldList structure;
         // 函数类型信息由返回值类型和参数类型构成
-        struct { Type ret; FieldList params; int totalsize; } func;
+        struct { Type ret; FieldList params; } func;
     } u;
 };
 
@@ -36,6 +36,8 @@ struct FieldList_ {
     Type type; // 域的类型
     FieldList tail; // 下一个域
     int offset; 
+    int totalsize;
+    int size;
 };
 
 
