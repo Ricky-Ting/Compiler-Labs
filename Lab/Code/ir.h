@@ -18,9 +18,10 @@ typedef InterCodes_t* InterCodes;
 
 
 struct Operand_ {
-    enum { VARIABLE, CONSTANT, ADDRESS } kind;
+    enum { VARIABLE, TEMP, LABEL, CONSTANT, ADDRESS, FUNC } kind;
     union {
         int var_no;
+        int label;
         int value;
     } u;
 };
@@ -31,11 +32,11 @@ struct InterCode_ {
     union {
         struct { Operand right, left; } assign;
         struct { Operand result, op1, op2; } binop;
-        struct { int target; } label;
-        struct { int var_no; } unary;
+        struct { Opreand op; } label;
+        struct { Operand op; } unary;
         struct { Operand op1, op2; int target; } conjmp;
     } u;
-}
+};
 
 struct InterCodes_ { InterCode code; struct InterCodes_ *prev, *next; };
 

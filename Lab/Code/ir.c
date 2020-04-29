@@ -11,9 +11,11 @@ char random_name[55];
 int pos;
 
 int temp_counter = 0;
-char temp_name[55];
+int label_counter = 0;
 
 InterCodes head, tail; // 整个代码块的head和tail
+
+Operand_t OP_ZERO, OP_ONE;
 
 void helper(TreeNode_t* root) {
     //fprintf(stderr, "In %s\n", root->Tree_token);
@@ -82,13 +84,21 @@ char* get_name() {
     return random_name;
 }
 
-char* get_temp() {
-    snprintf(temp_name, "t%d", 55);
-    return temp_name;
-
+Operand get_temp() {
+    Operand op = myAlloc(sizeof(Operand_t));
+    op->kind = TEMP;
+    op->u.var_no = temp_counter++;
+    return op;
 }
 
-void append_code(InterCodes codes) {
+Operand get_label() {
+    Operand op = myAlloc(sizeof(Operand_t));
+    op->kind = LABEL;
+    op->u.label = label_counter++;
+    return op;
+}
+
+void append_codes(InterCodes codes) {
     if(codes == NULL) return;
     if(head == NULL) {
         head = codes;
@@ -102,6 +112,13 @@ void append_code(InterCodes codes) {
     return;
 }
 
+void append_code(InterCode code) {
+    InterCodes codes = myAlloc(sizeof(InterCodes_t));
+    codes->prev = codes->next = NULL;
+    codes->code = code;
+    append_codes(codes);
+}
+
 void ir_init() {
 
     random_name[0] = '#';
@@ -112,6 +129,12 @@ void ir_init() {
     initTables();
     
     head = tail = NULL;
+
+    OP_ZERO.kind = CONSTANT;
+    OP_ZERO.u.value = 0;
+
+    OP_ONE.kind = CONSTANT;
+    OP_ONE.u.value = 1;
 
     // Add read and write
     return;
@@ -136,7 +159,7 @@ void ir_Program(TreeNode_t* root) {
     return;
 }
 
-void sdt_ExtDefList(TreeNode_t *root) {
+void ir_ExtDefList(TreeNode_t *root) {
     helper(root);
     /*
     * ExtDefList -> ExtDef ExtDefList
@@ -146,14 +169,14 @@ void sdt_ExtDefList(TreeNode_t *root) {
     assert(root->num_child == 2);
     
     assert(root->Tree_child[0] != NULL);
-    sdt_ExtDef(root->Tree_child[0]);
+    ir_ExtDef(root->Tree_child[0]);
 
     if(root->Tree_child[1] != NULL) {
-        sdt_ExtDefList(root->Tree_child[1]);
+        ir_ExtDefList(root->Tree_child[1]);
     }
 }
 
-void sdt_ExtDef(TreeNode_t *root) {
+void ir_ExtDef(TreeNode_t *root) {
     helper(root);
     /*
     * ExtDef -> Specifier ExtDecList SEMI 
@@ -166,7 +189,7 @@ void sdt_ExtDef(TreeNode_t *root) {
     
     /* Get Specifier */
     assert(root->Tree_child[0] != NULL);
-    Type type = sdt_Specifier(root->Tree_child[0]);
+    Type type = ir_Specifier(root->Tree_child[0]);
 
     /* ExtDecList SEMI FunDec 都不会产生空 */
     assert(root->Tree_child[1] != NULL);
@@ -175,7 +198,7 @@ void sdt_ExtDef(TreeNode_t *root) {
         return;
     } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "ExtDecList")) {
         // ExtDef -> Specifier ExtDecList SEMI
-        sdt_ExtDecList(root->Tree_child[1], type);
+        ir_ExtDecList(root->Tree_child[1], type);
         return;
     } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "FunDec")) {
         // ExtDef -> Specifier FunDec Compst
@@ -184,41 +207,32 @@ void sdt_ExtDef(TreeNode_t *root) {
         // 遇到函数 压栈
         stack_push(); 
         // 创建符号
-        Symbol sym = sdt_FunDec(root->Tree_child[1], type);
+        Symbol sym = ir_FunDec(root->Tree_child[1], type);
         assert(root->Tree_child[2] != NULL);
 
-        stack_pop();
 
         if(findSymbol(sym->name) == NULL) {
             insertSymbol(sym);
-            insertFunc(sym->name, root->Tree_lineno);
         } else {
-            // 判断是否是同一类型函数
-            if(!_same_type(sym->type, findSymbol(sym->name)->type)) {
-                // 定义不同
-                // 报错 类型19: 函数的多次声明互相冲突，或者声明与定义之间互相冲突
-                sdt_error(19, root->Tree_lineno, "FUNC");   
-                // 是否要终止？？？ 待考虑 TODO
-            }
+            // 只会出现一次函数定义
+            // shouldn't reach here!!!
+            assert(0);
         }
 
         if(IS_EQUAL(root->Tree_child[2]->Tree_token, "CompSt")) {
-            if(!deleteFunc(sym->name)) {
-                // 报错 类型4: 函数出现重复定义
-                sdt_error(4, root->Tree_lineno, "Redefined");
-            }
-            stack_push();
-            sdt_FunDec(root->Tree_child[1], type);
-            sdt_CompSt(root->Tree_child[2], type);
-            stack_pop();
+            ir_CompSt(root->Tree_child[2], type);
+        } else {
+            // Shouldn't reach here!!!
+            assert(0);
         }
         // 退栈
+        stack_pop();
         
         return;
     }
 }
 
-void sdt_ExtDecList(TreeNode_t *root, Type baseType) {
+void ir_ExtDecList(TreeNode_t *root, Type baseType) {
     helper(root);
     /*
     * ExtDecList -> VarDec
@@ -228,13 +242,13 @@ void sdt_ExtDecList(TreeNode_t *root, Type baseType) {
    assert(root->num_child == 1 || root->num_child == 3);
    
    assert(root->Tree_child[0] != NULL);
-   sdt_VarDec(root->Tree_child[0], baseType, 0, 0); // 0表示数组的维度，最开始是0维的
+   ir_VarDec(root->Tree_child[0], baseType, 0, 0); 
 
    if(root->num_child == 1) 
        return;
        
     assert(root->Tree_child[2] != NULL);
-    sdt_ExtDecList(root->Tree_child[2], baseType);
+    ir_ExtDecList(root->Tree_child[2], baseType);
 }
 
 /* Specifiers */
@@ -248,13 +262,13 @@ Type sdt_Specifier(TreeNode_t *root) {
     assert(root->num_child == 1);
     assert(root->Tree_child[0] != NULL);
     if(IS_EQUAL(root->Tree_child[0]->Tree_token, "TYPE")) {
-        int basic_type = sdt_TYPE(root->Tree_child[0]);
+        int basic_type = ir_TYPE(root->Tree_child[0]);
         if(basic_type == TYPE_INT) 
             return &type_INT;
         else 
             return &type_FLOAT;
     } else if(IS_EQUAL(root->Tree_child[0]->Tree_token, "StructSpecifier")) {
-        return sdt_StructSpecifier(root->Tree_child[0]);
+        return ir_StructSpecifier(root->Tree_child[0]);
     } else {
         // Shouldn't reach here!!!
         assert(0);
@@ -270,13 +284,11 @@ Type sdt_StructSpecifier(TreeNode_t* root) {
     assert(root->num_child==2 || root->num_child==5);
     if(root->num_child == 2) {
         assert(root->Tree_child[1] != NULL);     
-        char *name = sdt_Tag(root->Tree_child[1]);
+        char *name = ir_Tag(root->Tree_child[1]);
         Symbol sym = findType(name);
         if(sym == NULL) {
-            // 找不到这个结构体类型
-            // 报错 类型17: 直接使用未定义过得结构体来定义变量
-            sdt_error(17, root->Tree_lineno, "STRUCT");
-            return &type_INT;
+            // Shouldn't reach here !!!
+            assert(0);
         }
         return sym->type;        
     } else {
@@ -299,15 +311,9 @@ Type sdt_StructSpecifier(TreeNode_t* root) {
         if(root->Tree_child[3] != NULL)
             type->u.structure = sdt_DefList(root->Tree_child[3], 1);
 
-        //Symbol exist_sym = findSymbol(sym->name);
-        //结构体类型的作用域是全局的
-        // TODO 待check
         if(findSymbol(sym->name) != NULL || findType(sym->name) != NULL) {
-            // 同名结构体或变量
-            // 报错 类型16: 结构体的名字与前面定义过得结构体或变量的名字重复
-            sdt_error(16, root->Tree_lineno, "STRUCT");
-            stack_pop();
-            return &type_INT;
+            // shouldn't reach here!!!
+            assert(0);
         } else {
             insertType(sym);
             stack_pop();
@@ -318,7 +324,7 @@ Type sdt_StructSpecifier(TreeNode_t* root) {
     }
 }
 
-char* sdt_OptTag(TreeNode_t* root) {
+char* ir_OptTag(TreeNode_t* root) {
     helper(root);
     /*
         OptTag -> ID
@@ -328,7 +334,7 @@ char* sdt_OptTag(TreeNode_t* root) {
     return root->Tree_child[0]->Tree_val;
 }
 
-char* sdt_Tag(TreeNode_t* root) {
+char* ir_Tag(TreeNode_t* root) {
     helper(root);
     // Tag -> ID
     return root->Tree_child[0]->Tree_val;
@@ -336,7 +342,7 @@ char* sdt_Tag(TreeNode_t* root) {
 
 
 /* Declarators */
-Symbol sdt_VarDec(TreeNode_t* root, Type baseType, int size, int inStruct) {
+Symbol ir_VarDec(TreeNode_t* root, Type baseType, int size, int inStruct) {
     helper(root);
     /* 
     * VarDec -> ID
@@ -350,24 +356,15 @@ Symbol sdt_VarDec(TreeNode_t* root, Type baseType, int size, int inStruct) {
         Type type = baseType;
         
         Symbol sym = myAlloc(sizeof(Symbol_t));
-        strncpy(sym->name, sdt_ID(root->Tree_child[0]), 55);
+        strncpy(sym->name, ir_ID(root->Tree_child[0]), 55);
         sym->type = type;
         sym->prev = sym->next = sym->area_prev = sym->area_next = NULL;
         
         //Symbol exist_sym = findSymbol(sym->name);
         // TODO 结构体名字重复待考虑
         if(existSymbol(sym->name) || findType(sym->name) != NULL) {
-            // 变量重复定义
-
-            if(inStruct) {
-                // 报错 类型15: 结构体中域名重复定义
-                sdt_error(15, root->Tree_lineno, "Variable");
-            } else {
-                // 报错 类型3: 变量出现重复定义，或变量与前面定义过的结构体名字重复
-                sdt_error(3, root->Tree_lineno, "Variable");
-            }
-
-            // TODO 这次是否直接返回 待考虑
+            // Shound't reach here!!!
+            assert(0);
         } else {
             insertSymbol(sym);
         }
@@ -379,11 +376,11 @@ Symbol sdt_VarDec(TreeNode_t* root, Type baseType, int size, int inStruct) {
         newType->u.array.size = root->Tree_child[2]->val_UINT;
         newType->u.array.elem = baseType;
 
-        return sdt_VarDec(root->Tree_child[0], newType, size+1, inStruct);
+        return ir_VarDec(root->Tree_child[0], newType, size+1, inStruct);
     }
 }
 
-Symbol sdt_FunDec(TreeNode_t* root, Type retType) {
+Symbol ir_FunDec(TreeNode_t* root, Type retType) {
     helper(root);
     /* 
     * FunDec -> ID LP VarList RP
@@ -404,13 +401,13 @@ Symbol sdt_FunDec(TreeNode_t* root, Type retType) {
 
     if(root->num_child == 4) {
         assert(root->Tree_child[2] != NULL);
-        type->u.func.params = sdt_VarList(root->Tree_child[2]);
+        type->u.func.params = ir_VarList(root->Tree_child[2]);
     }
 
     return sym;
 }
 
-FieldList sdt_VarList(TreeNode_t* root) {
+FieldList ir_VarList(TreeNode_t* root) {
     helper(root);
     /*
     * VarList -> ParamDec COMMA VarList
@@ -421,11 +418,11 @@ FieldList sdt_VarList(TreeNode_t* root) {
 
     assert(root->Tree_child[0] != NULL);
 
-    FieldList field = sdt_ParamDec(root->Tree_child[0]);
+    FieldList field = ir_ParamDec(root->Tree_child[0]);
 
     if(root->num_child == 3) {
         assert(root->Tree_child[2] != NULL);
-        FieldList next_field = sdt_VarList(root->Tree_child[2]);
+        FieldList next_field = ir_VarList(root->Tree_child[2]);
         FieldList cur = field;
         while(cur->tail != NULL)
             cur = cur->tail;
@@ -435,7 +432,7 @@ FieldList sdt_VarList(TreeNode_t* root) {
 }
 
 
-FieldList sdt_ParamDec(TreeNode_t* root) {
+FieldList ir_ParamDec(TreeNode_t* root) {
     helper(root);
     /*
     * ParamDec -> Specifier VarDec 
@@ -444,8 +441,8 @@ FieldList sdt_ParamDec(TreeNode_t* root) {
     assert(root->num_child == 2);
     assert(root->Tree_child[0] != NULL && root->Tree_child[1] != NULL);
 
-    Type type = sdt_Specifier(root->Tree_child[0]);
-    Symbol sym = sdt_VarDec(root->Tree_child[1], type, 0, 0);
+    Type type = ir_Specifier(root->Tree_child[0]);
+    Symbol sym = ir_VarDec(root->Tree_child[1], type, 0, 0);
 
     FieldList field = myAlloc(sizeof(FieldList_t));
     strncpy(field->name, sym->name, 55);
@@ -459,7 +456,7 @@ FieldList sdt_ParamDec(TreeNode_t* root) {
 
 /* Statements */
 
-void sdt_CompSt(TreeNode_t* root, Type retType) {
+void ir_CompSt(TreeNode_t* root, Type retType) {
     helper(root);
     /*
     * CompSt -> LC DefList StmtList RC
@@ -467,16 +464,16 @@ void sdt_CompSt(TreeNode_t* root, Type retType) {
 
     assert(root->num_child == 4);
     if(root->Tree_child[1] != NULL) {
-        sdt_DefList(root->Tree_child[1], 0);
+        ir_DefList(root->Tree_child[1], 0);
     }
 
     if(root->Tree_child[2] != NULL) {
-        sdt_StmtList(root->Tree_child[2], retType);
+        ir_StmtList(root->Tree_child[2], retType);
     }
     return;
 }
 
-void sdt_StmtList(TreeNode_t* root, Type retType) {
+void ir_StmtList(TreeNode_t* root, Type retType) {
     helper(root);
     /*
     * StmtList -> Stmt StmtList
@@ -484,13 +481,13 @@ void sdt_StmtList(TreeNode_t* root, Type retType) {
 
     assert(root->num_child == 2);
     assert(root->Tree_child[0] != NULL);
-    sdt_Stmt(root->Tree_child[0], retType);
+    ir_Stmt(root->Tree_child[0], retType);
     if(root->Tree_child[1] != NULL)
-        sdt_StmtList(root->Tree_child[1], retType);
+        ir_StmtList(root->Tree_child[1], retType);
     return;
 }
 
-void sdt_Stmt(TreeNode_t* root, Type retType) {
+void ir_Stmt(TreeNode_t* root, Type retType) {
     helper(root);
     /* 
     * Stmt -> Exp SEMI
@@ -505,7 +502,7 @@ void sdt_Stmt(TreeNode_t* root, Type retType) {
         // Stmt -> CompSt
         assert(root->Tree_child[0] != NULL);
         stack_push();
-        sdt_CompSt(root->Tree_child[0], retType);
+        ir_CompSt(root->Tree_child[0], retType);
         stack_pop();
         return;
     }
@@ -513,20 +510,23 @@ void sdt_Stmt(TreeNode_t* root, Type retType) {
     if(root->num_child == 2) {
         // Stmt -> Exp SEMI;
         assert(root->Tree_child[0] != NULL);
-        sdt_Exp(root->Tree_child[0]);
+        ir_Exp(root->Tree_child[0], NULL);
         return;
     }
 
     if(root->num_child == 3) {
         // Stmt -> RETURN Exp SEMI
         assert(root->Tree_child[1] != NULL);
-        expType_t type = sdt_Exp(root->Tree_child[1]);
-        expType_t exp_retType = {retType, 0};
-        if(!same_type(type, exp_retType)) {
-            // 返回值类型不统一
-            // 报错 类型8: return语句的返回类型与函数定义的返回类型不匹配
-            sdt_error(8, root->Tree_lineno, "return");
-        }
+
+        Operand t1 = get_temp();
+        ir_Exp(root->Tree_child[1], t1);
+        
+        InterCode code = myAlloc(sizeof(InterCode_t));
+        code->kind = RETURN;
+        code->u.unary.op = t1;
+
+        append_code(code);
+
         return;
     }
 
@@ -535,12 +535,54 @@ void sdt_Stmt(TreeNode_t* root, Type retType) {
         // Stmt -> WHILE LP Exp RP Stmt
         assert(root->Tree_child[2] != NULL);
         assert(root->Tree_child[4] != NULL);
-        expType_t type = sdt_Exp(root->Tree_child[2]);
-        if(!same_type(type, exp_INT)) {
-            // 报错 类型7: balabal
-            sdt_error(7, root->Tree_lineno, "IF WHILE");
+
+        if(IS_EQUAL(root->Tree_child[0]->Tree_token, "IF")) {
+            Operand label1 = get_label();
+            Operand label2 = get_label();
+
+            ir_Cond(Exp, label1, label2); // TODO
+
+            InterCode l1 = myAlloc(sizeof(InterCode_t));
+            l1->kind = LABEL;
+            l1->u.label.op = label1;
+            append_code(l1);
+
+            ir_Stmt(root->Tree_child[4], retType);
+
+            InterCode l2 = myAlloc(sizeof(InterCode_t));
+            l2->kind = LABEL;
+            l2->u.label.op = label2;
+            append_code(l2);
+        } else {
+            Operand label1 = get_label();
+            Operand label2 = get_label();
+            Operand label3 = get_label();
+
+            InterCode l1 = myAlloc(sizeof(InterCode_t));
+            l1->kind = LABEL;
+            l1->u.label.op = label1;
+            append_code(l1);
+
+            ir_Cond(Exp, label2, label3); // TODO
+
+            InterCode l2 = myAlloc(sizeof(InterCode_t));
+            l2->kind = LABEL;
+            l2->u.label.op = label2;
+            append_code(l2);
+
+            ir_Stmt(root->Tree_child[6], retType);
+
+            InterCode g1 = myAlloc(sizeof(InterCode_t));
+            g1->kind = LABEL;
+            g1->u.label.op = label1;
+            append_code(g1);
+
+            InterCode l3 = myAlloc(sizeof(InterCode_t));
+            l3->kind = LABEL;
+            l3->u.label.op = label3;
+            append_code(l3);
         }
-        sdt_Stmt(root->Tree_child[4], retType);
+
         return;
     }
 
@@ -549,13 +591,38 @@ void sdt_Stmt(TreeNode_t* root, Type retType) {
         assert(root->Tree_child[2] != NULL);
         assert(root->Tree_child[4] != NULL);
         assert(root->Tree_child[6] != NULL);
-        expType_t type = sdt_Exp(root->Tree_child[2]);
-        if(!same_type(type, exp_INT)) {
-            // 报错 类型7: balabal
-            sdt_error(7, root->Tree_lineno, "IF WHILE");
-        }
-        sdt_Stmt(root->Tree_child[4], retType);
-        sdt_Stmt(root->Tree_child[6], retType);
+
+        Operand label1 = get_label();
+        Operand label2 = get_label();
+        Operand label3 = get_label();
+
+        ir_Cond(Exp, label1, label2); // TODO
+
+        InterCode l1 = myAlloc(sizeof(InterCode_t));
+        l1->kind = LABEL;
+        l1->u.label.op = label1;
+        append_code(l1);
+
+        ir_Stmt(root->Tree_child[4], retType);
+
+        InterCode g1 = myAlloc(sizeof(InterCode_t));
+        g1->kind = LABEL;
+        g1->u.label.op = label3;
+        append_code(g1);
+
+
+        InterCode l2 = myAlloc(sizeof(InterCode_t));
+        l2->kind = LABEL;
+        l2->u.label.op = label2;
+        append_code(l2);
+
+        ir_Stmt(root->Tree_child[6], retType);
+
+        InterCode l3 = myAlloc(sizeof(InterCode_t));
+        l3->kind = LABEL;
+        l3->u.label.op = label3;
+        append_code(l3);
+
         return;
     }
 
@@ -566,7 +633,7 @@ void sdt_Stmt(TreeNode_t* root, Type retType) {
 
 
 /* Local Definitions */
-FieldList sdt_DefList(TreeNode_t* root, int inStruct) {
+FieldList ir_DefList(TreeNode_t* root, int inStruct) {
     helper(root);
     /* 
     * DefList -> Def DefList 
@@ -576,9 +643,9 @@ FieldList sdt_DefList(TreeNode_t* root, int inStruct) {
     assert(root->num_child == 2);
 
     if(inStruct == 1) {
-        FieldList field = sdt_Def(root->Tree_child[0], inStruct); 
+        FieldList field = ir_Def(root->Tree_child[0], inStruct); 
         if(root->Tree_child[1] != NULL) {
-            FieldList next_field = sdt_DefList(root->Tree_child[1], inStruct);
+            FieldList next_field = ir_DefList(root->Tree_child[1], inStruct);
             FieldList cur = field;
             while(cur->tail != NULL)
                 cur = cur->tail;
@@ -586,15 +653,15 @@ FieldList sdt_DefList(TreeNode_t* root, int inStruct) {
         }
         return field;
     } else {
-        sdt_Def(root->Tree_child[0], inStruct);
+        ir_Def(root->Tree_child[0], inStruct);
         if(root->Tree_child[1] != NULL) {
-            sdt_DefList(root->Tree_child[1], inStruct);
+            ir_DefList(root->Tree_child[1], inStruct);
         }
         return NULL;
     }
 }
 
-FieldList sdt_Def(TreeNode_t* root, int inStruct) {
+FieldList ir_Def(TreeNode_t* root, int inStruct) {
     helper(root);
     /*
     * Def -> Specifier DecList SEMI
@@ -603,13 +670,13 @@ FieldList sdt_Def(TreeNode_t* root, int inStruct) {
     assert(root->num_child == 3);
    
     assert(root->Tree_child[0] != NULL);
-    Type type = sdt_Specifier(root->Tree_child[0]);
+    Type type = ir_Specifier(root->Tree_child[0]);
 
     assert(root->Tree_child[1] != NULL);
-    return sdt_DecList(root->Tree_child[1], type, inStruct);
+    return ir_DecList(root->Tree_child[1], type, inStruct);
 }
 
-FieldList sdt_DecList(TreeNode_t* root, Type baseType, int inStruct) {
+FieldList ir_DecList(TreeNode_t* root, Type baseType, int inStruct) {
     helper(root);
     /* 
     * DecList -> Dec
@@ -621,11 +688,11 @@ FieldList sdt_DecList(TreeNode_t* root, Type baseType, int inStruct) {
     assert(root->Tree_child[0] != NULL);
 
     if(inStruct == 1) {
-        FieldList field = sdt_Dec(root->Tree_child[0], baseType, inStruct);
+        FieldList field = ir_Dec(root->Tree_child[0], baseType, inStruct);
         field->tail = NULL;
         if(root->num_child != 1) {
             assert(root->Tree_child[2] != NULL);
-            FieldList next_field = sdt_DecList(root->Tree_child[2], baseType, inStruct);
+            FieldList next_field = ir_DecList(root->Tree_child[2], baseType, inStruct);
             FieldList cur = field;
             while(cur->tail != NULL)
                 cur = cur->tail;
@@ -633,10 +700,10 @@ FieldList sdt_DecList(TreeNode_t* root, Type baseType, int inStruct) {
         }
         return field;
     } else {
-        sdt_Dec(root->Tree_child[0], baseType, inStruct);
+        ir_Dec(root->Tree_child[0], baseType, inStruct);
         if(root->num_child != 1) {
             assert(root->Tree_child[2] != NULL);
-            sdt_DecList(root->Tree_child[2], baseType, inStruct);
+            ir_DecList(root->Tree_child[2], baseType, inStruct);
         }
         return NULL;
 
@@ -645,7 +712,7 @@ FieldList sdt_DecList(TreeNode_t* root, Type baseType, int inStruct) {
 
 }
 
-FieldList sdt_Dec(TreeNode_t* root, Type baseType, int inStruct) {
+FieldList ir_Dec(TreeNode_t* root, Type baseType, int inStruct) {
     helper(root);
     /*
     * Dec -> VarDec
@@ -655,7 +722,7 @@ FieldList sdt_Dec(TreeNode_t* root, Type baseType, int inStruct) {
     assert(root->num_child == 1 || root->num_child == 3);
     
     assert(root->Tree_child[0] != NULL);
-    Symbol sym = sdt_VarDec(root->Tree_child[0], baseType, 0, inStruct);
+    Symbol sym = ir_VarDec(root->Tree_child[0], baseType, 0, inStruct);
 
     if(inStruct == 1) {
         FieldList field = myAlloc(sizeof(FieldList_t));
@@ -665,20 +732,14 @@ FieldList sdt_Dec(TreeNode_t* root, Type baseType, int inStruct) {
 
         if(root->num_child == 3) {
             // 结构体里面不能赋值
-            // 报错 类型15: 结构体中域名重复定义，或在定义时对域进行初始化
-            sdt_error(15, root->Tree_lineno, "Strutc");
+            assert(0);
         }
         return field;
     } else {
         
         if(root->num_child == 3) {
-            // 判断左右类型是否相同
-            expType_t ltype = {sym->type, 0};
-            expType_t rtype = sdt_Exp(root->Tree_child[2]);
-            if(!same_type(ltype, rtype)) {
-                // 报错 类型5: 赋值号两边的表达式类型不匹配
-                sdt_error(5, root->Tree_lineno, "=");
-            }
+            // TODO
+
         }
         return NULL;
     }
@@ -688,7 +749,7 @@ FieldList sdt_Dec(TreeNode_t* root, Type baseType, int inStruct) {
 
 /* Expressions */
 
-expType_t sdt_Exp(TreeNode_t* root) {
+void ir_Exp(TreeNode_t* root, Operand place) {
     helper(root);
     /*
     * Exp -> Exp ASSIGNOP Exp
@@ -723,40 +784,63 @@ expType_t sdt_Exp(TreeNode_t* root) {
             expType_t ltype = sdt_Exp(root->Tree_child[0]);
             expType_t rtype = sdt_Exp(root->Tree_child[2]);
             if(IS_EQUAL(root->Tree_child[1]->Tree_token, "ASSIGNOP")) {
-                if(!same_type(ltype, rtype)) {
-                    // 报错 类型5: 赋值号两边的表达式类型不匹配
-                    sdt_error(5, root->Tree_lineno, "Type mismatched for assignment");
-                    return exp_INT;
-                }
-                if(!ltype.var) {
-                    // 报错 类型6: 赋值号左边出现一个只有右值得表达式
-                    sdt_error(6, root->Tree_lineno, "Dism");
-                    return exp_INT;
-                }
-                return ltype;
+                // TODO
+
             } else {
-                if(!same_type(ltype, rtype)) {
-                    // 报错 类型7: 操作数类型不匹配或操作数类型与操作符不匹配
-                    sdt_error(7, root->Tree_lineno, "Unmatched operands");
-                    return exp_INT;
-                }
+                if(IS_EQUAL(root->Tree_child[1]->Tree_token, "AND") 
+                  || IS_EQUAL(root->Tree_child[1]->Tree_token, "OR") 
+                  || IS_EQUAL(root->Tree_child[1]->Tree_token, "RELOP") ) {
+                    Operand label1 = get_label();
+                    Operand label2 = get_label();
+                    
+                    InterCode code0 = myAlloc(sizeof(InterCode_t));
+                    code0->kind = ASSIGN;
+                    code0->u.assign.left = place;
+                    code0->u.assign.right = &OP_ZERO;
+                    append_code(code0);
 
-                if(IS_EQUAL(root->Tree_child[1]->Tree_token, "AND") || IS_EQUAL(root->Tree_child[1]->Tree_token, "OR")) {
-                    // 报错 类型7: 操作数类型不匹配或操作数类型与操作符不匹配
-                    if(!same_type(ltype, exp_INT)) {
-                        sdt_error(7, root->Tree_lineno, "Unmatched operands");
-                        return exp_INT;
+                    ir_Cond(root, label1, label2);
+
+                    InterCode l1 = myAlloc(sizeof(InterCode_t));
+                    l1->kind = LABEL;
+                    l1->u.label.op = label1;
+                    append_code(l1);
+
+                    InterCode code2 = myAlloc(sizeof(InterCode_t));
+                    code2->kind = ASSIGN;
+                    code2->u.assign.left = place;
+                    code2->u.assign.right = &OP_ONE;
+                    append_code(code2);
+
+                    InterCode l2 = myAlloc(sizeof(InterCode_t));
+                    l2->kind = LABEL;
+                    l2->u.label.op = label2;
+                    append_code(l2);
+                } else {
+                    Operand op1 = get_temp();
+                    Operand op2 = get_temp();
+                    ir_Exp(root->Tree_child[0], op1);
+                    ir_Exp(root->Tree_child[2], op2);
+
+                    InterCode code = myAlloc(sizeof(InterCode_t));
+                    code->u.binop.op1 = op1;
+                    code->u.binop.op2 = op2;
+                    code->u.binop.result = place;
+
+                    if(IS_EQUAL(root->Tree_child[1]->Tree_token, "PLUS")) {
+                        code->kind = PLUS;
+                    } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "MINUS")) {
+                        code->kind = MINUS;
+                    } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "STAR")) {
+                        code->kind = MUL;
+                    } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "DIV")) {
+                        code->kind = DIV;
+                    } else {
+                        assert(0);
                     }
-                    return exp_INT;
-                }
+                    append_code(code);
 
-                if(!same_type(ltype, exp_INT) && !same_type(rtype, exp_FLOAT)) {
-                    // 报错 类型7: 操作数类型不匹配或操作数类型与操作符不匹配
-                    sdt_error(7, root->Tree_lineno, "Unmatched operands");
-                    return exp_INT;
                 }
-                ltype.var = 0;
-                return ltype;
             }
             
         }
@@ -766,38 +850,32 @@ expType_t sdt_Exp(TreeNode_t* root) {
             char func_name[55];
             strncpy(func_name, sdt_ID(root->Tree_child[0]), 55);
             Symbol sym = findSymbol(func_name);
-            if(sym == NULL) {
-                // 函数未定义
-                // 报错 类型2: 函数在调用时未经定义
-                sdt_error(2, root->Tree_lineno, "Undefined func");
-                return exp_INT;
+            
+            if(IS_EQUAL(func_name, "read")) {
+                InterCode code = myAlloc(sizeof(InterCode_t));
+                code->kind = READ;
+                code->u.unary.op = place;
+                append_code(code);
+            } else {
+                InterCode code = myAlloc(sizeof(InterCode_t));
+                code->kind = CALL;
+                code->u.assign.left = place;
+
+                Operand func = myAlloc(sizeof(Operand_t));
+                func->kind = FUNC;
+                func->u.val_no = sym->var_no;
+                code->u.assign.right = func;
+                append_code(code);
             }
 
-            if(sym->type->kind != FUNC) {
-                // 非函数类型
-                // 报错 类型11: 对普通变量使用"(...)"或"()"操作符
-                sdt_error(11, root->Tree_lineno, "Func");
-                return exp_INT;
-            }
-            if(sym->type->u.func.params != NULL) {
-                // 参数不符合
-                // 报错 类型9: 函数调用时实参与形参的数目或类型不匹配
-                // Modified
-                sdt_error(9, root->Tree_lineno, "Func");
-                expType_t type = {sym->type->u.func.ret, 0};
-                return type;
-            }
-            // 函数调用成功，Exp为返回值类型
-            expType_t type = {sym->type->u.func.ret, 0};
-            return type;
+            return ;
 
         }
 
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "LP")) {
             // Exp -> LP Exp RP
-            expType_t type = sdt_Exp(root->Tree_child[1]);
-            type.var  = 0;
-            return type;
+            ir_Exp(root->Tree_child[1], place);
+            return;
         }
 
         if(IS_EQUAL(root->Tree_child[1]->Tree_token, "DOT")) {
@@ -807,27 +885,13 @@ expType_t sdt_Exp(TreeNode_t* root) {
             char field_name[55];
             strncpy(field_name, sdt_ID(root->Tree_child[2]), 55);
 
-            if(struct_type.type->kind != STRUCTURE) {
-                // 非结构体变量
-                // 报错 类型13: 对非结构体型变量使用"."操作符
-                sdt_error(13, root->Tree_lineno, "STRUCT");
-                return exp_INT;
-            }
 
             FieldList field = struct_type.type->u.structure;
             while(field != NULL && !IS_EQUAL(field->name, field_name)) {
                 field  = field->tail;
             }
 
-            if(field == NULL) {
-                // 结构体中没有当前域
-                // 报错 类型14: 访问结构体中未定义过的域。
-                sdt_error(14, root->Tree_lineno, "Undefined field");
-                return exp_INT;
-            }
-            expType_t type = {field->type, 1};
-
-            return type;
+            return;
         }
 
         // Shound't reach here!!!
@@ -841,29 +905,48 @@ expType_t sdt_Exp(TreeNode_t* root) {
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "MINUS")) {
             // Exp -> MINUS Exp
             // TODO 确认类型 报错
-            expType_t type = sdt_Exp(root->Tree_child[1]);
-            if(!same_type(type, exp_INT) && !same_type(type, exp_FLOAT)) {
-                // 非整数和浮点数
-                // 报错 类型7: 操作数类型不匹配或操作数类型与操作符不匹配
-                sdt_error(7, root->Tree_lineno, "Unmacthed");
-                return exp_INT;
-            }
-            type.var = 0;
-            return type;
+            Operand t1 = get_temp();
+            ir_Exp(root->Tree_child[1], t1);
+
+            InterCode code2 = myAlloc(sizeof(InterCode_t));
+            code2->kind = MINUS;
+            code2->u.binop.op1 = &OP_ZERO;
+            code2->u.binop.op2 = t1
+            code2->u.binop.result = place;
+            append_code(code2);
+
+            return;
         }
 
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "NOT")) {
             // Exp -> NOT Exp
-            // TODO 确认类型 报错
-            expType_t type = sdt_Exp(root->Tree_child[1]);
-            if(!same_type(type, exp_INT)) {
-                // 非整数
-                // 报错 类型7: 操作数类型不匹配或操作数类型与操作符不匹配
-                sdt_error(7, root->Tree_lineno, "Unmacthed");
-                return exp_INT;
-            }
-            type.var = 0;
-            return type;
+            Operand label1 = get_label();
+            Operand label2 = get_label();   
+
+            InterCode code0 = myAlloc(sizeof(InterCode_t));
+            code0->kind = ASSIGN;
+            code0->u.assign.left = place;
+            code0->u.assign.right = &OP_ZERO;
+            append_code(code0);
+
+            ir_Cond(root, label1, label2);
+
+            InterCode l1 = myAlloc(sizeof(InterCode_t));
+            l1->kind = LABEL;
+            l1->u.label.op = label1;
+            append_code(l1);
+
+            InterCode code2 = myAlloc(sizeof(InterCode_t));
+            code2->kind = ASSIGN;
+            code2->u.assign.left = place;
+            code2->u.assign.right = &OP_ONE;
+            append_code(code2);
+
+            InterCode l2 = myAlloc(sizeof(InterCode_t));
+            l2->kind = LABEL;
+            l2->u.label.op = label2;
+            append_code(l2);
+            return;
         }
         // Shound't reach here!!!
         assert(0);
@@ -880,28 +963,30 @@ expType_t sdt_Exp(TreeNode_t* root) {
             char func_name[55];
             strncpy(func_name, sdt_ID(root->Tree_child[0]), 55);
             Symbol sym = findSymbol(func_name);
-            if(sym == NULL) {
-                // 函数未定义
-                // 报错 类型2: 函数在调用时未经定义
-                sdt_error(2, root->Tree_lineno, "Undefined func");
-                return exp_INT;
-            }
 
-            if(sym->type->kind != FUNC) {
-                // 非函数类型
-                // 报错 类型11: 对普通变量使用"(...)"或"()"操作符
-                sdt_error(11, root->Tree_lineno, "Func");
-                return exp_INT;
-            }
+            if(IS_EQUAL(func_name, "WRITE")) {
+                Operand t1 = get_temp();
+                ir_Exp(root->Tree_child[2]->Tree_child[0], t1);
 
-            // 参数不符合的报错留个Args解决：
-            if (!sdt_Args(root->Tree_child[2], sym->type->u.func.params)) {
-                return exp_INT;
-            }
+                InterCode code = myAlloc(sizeof(InterCode_t));
+                code->kind = WRITE;
+                code->u.unary.op = t1;
+                append_code(code);
 
-            // 函数调用成功，Exp为返回值类型
-            expType_t type = {sym->type->u.func.ret, 0};
-            return type;
+            } else {
+                ir_Args(root->Tree_child[2]);
+
+                InterCode code = myAlloc(sizeof(InterCode_t));
+                code->kind = CALL;
+                code->u.assign.left = place;
+                Operand func = myAlloc(sizeof(Operand_t));
+                func->kind = FUNC;
+                func->u.val_no = sym->var_no;
+                code->u.assign.right = func;
+                append_code(code);
+            } 
+
+            return;
 
         }
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "Exp")) {
@@ -972,7 +1057,7 @@ expType_t sdt_Exp(TreeNode_t* root) {
 }
 
 
-int sdt_Args(TreeNode_t* root, FieldList field) {
+int ir_Args(TreeNode_t* root) {
     helper(root);
     /*
     * Args -> Exp COMMA Args
@@ -983,41 +1068,31 @@ int sdt_Args(TreeNode_t* root, FieldList field) {
 
     assert(root->Tree_child[0] != NULL);
 
-    if(field == NULL) {
-        // 报错: 类型9: 函数调用时实参与形参的数目或类型不匹配
-        sdt_error(9, root->Tree_lineno, "Args doesn't match");
-        return 0;
-    }
-    
-    expType_t type = sdt_Exp(root->Tree_child[0]);
-    expType_t type2 = {field->type, 0};
-    if(!same_type(type, type2)) {
-        // 报错: 类型9: 函数调用时实参与形参的数目或类型不匹配
-        sdt_error(9, root->Tree_lineno, "Args doesn't match");
-        return 0;
-    }
-    
-    if(root->num_child == 1) {
-        if(field->tail != NULL) {
-            // 报错: 类型9: 函数调用时实参与形参的数目或类型不匹配
-            sdt_error(9, root->Tree_lineno, "Args doesn't match");
-            return 0;
-        }
-        return 1;
+    if(root->num_child == 3) {
+        assert(root->Tree_child[2] != NULL);
+        ir_Args(root->Tree_child[2]);
     }
 
-    assert(root->Tree_child[2] != NULL);
-    return sdt_Args(root->Tree_child[2], field->tail);
+
+    Operand t1 = myAlloc(sizeof(Operand_t));
+    ir_Exp(root->Tree_child[0], t1);
+
+    InterCode code = myAlloc(sizeof(InterCode_t));
+    code->kind = ARG;
+    code->u.unary.op = t1;
+    append_code(code);
+    
+    return;
 }
 
 
 /* Terminator */
-char* sdt_ID(TreeNode_t* root) {
+char* ir_ID(TreeNode_t* root) {
     helper(root);
     return root->Tree_val;
 }
 
-int sdt_TYPE(TreeNode_t* root) {
+int ir_TYPE(TreeNode_t* root) {
     helper(root);
     if(IS_EQUAL(root->Tree_val, "int"))
         return TYPE_INT;
