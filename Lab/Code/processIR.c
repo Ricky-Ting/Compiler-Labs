@@ -132,7 +132,6 @@ void print_WRITE(InterCode code) {
     printf("\n");
 }
 
-
 void printIR(InterCodes head, InterCodes tail) {
     InterCodes cur = head;
     while(cur!= NULL) {
