@@ -35,7 +35,7 @@ struct InterCode_ {
         struct { Operand result, op1, op2; } binop;
         struct { Operand op; } label;
         struct { Operand op; } unary;
-        struct { Operand op1, op2; int target; char relop[5]; } condjmp;
+        struct { Operand op1, op2; Operand target; char relop[5]; } condjmp;
         struct { Operand op; int size; } dec;
     } u;
 };
@@ -51,7 +51,6 @@ struct expRet_ {
     Type type;
 };
 
-
 void ir_init();
 
 /* High-level Definitions */
@@ -60,9 +59,6 @@ void ir_ExtDefList(TreeNode_t *root);
 void ir_ExtDef(TreeNode_t *root);
 void ir_ExtDecList(TreeNode_t *root, Type baseType);
 Type ir_Specifier(TreeNode_t *root);
-
-
-
 
 /* Specifiers */
 Type ir_StructSpecifier(TreeNode_t* root);
@@ -94,5 +90,8 @@ void ir_Cond(TreeNode_t* root, Operand label_true, Operand label_false);
 /* Terminator */
 char* ir_ID(TreeNode_t* root);
 int ir_TYPE(TreeNode_t* root);
+
+void printIR(InterCodes head, InterCodes tail);
+
 
 #endif

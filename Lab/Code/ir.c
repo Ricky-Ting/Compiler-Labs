@@ -186,6 +186,7 @@ void ir_Program(TreeNode_t* root) {
     if(root->Tree_child[0] != NULL)
         ir_ExtDefList(root->Tree_child[0]);
 
+    printIR(head, tail);
     //showFunc(); // 打印所有未定义函数 Not required in Lab3
     return;
 }
@@ -418,6 +419,7 @@ Symbol ir_VarDec(TreeNode_t* root, Type baseType, int size, int inStruct) {
             append_code(code);
         } else if(inStruct == 2) {
             InterCode code = myAlloc(sizeof(InterCode_t));
+            //printf("HERE\n");
             code->kind = PARAM;
             code->u.unary.op = get_op(sym->var_no);
             append_code(code);
@@ -1271,6 +1273,7 @@ void ir_Cond(TreeNode_t* root, Operand label_true, Operand label_false) {
             code->kind = CONDJMP;
             code->u.condjmp.op1 = t1;
             code->u.condjmp.op2 = t2;
+            code->u.condjmp.target = label_true;
             snprintf(code->u.condjmp.relop, 5, "%s",root->Tree_child[1]->Tree_val);
             append_code(code);
             return;
@@ -1313,6 +1316,7 @@ void ir_Cond(TreeNode_t* root, Operand label_true, Operand label_false) {
     code->kind = CONDJMP;
     code->u.condjmp.op1 = t1;
     code->u.condjmp.op2 = &OP_ZERO;
+    code->u.condjmp.target = label_true;
     snprintf(code->u.condjmp.relop, 5, "!=");
     append_code(code);
 
