@@ -11,6 +11,7 @@ Symbol typeTable[HASH_TABLE_SZ+1]; // For struct type
 Node FuncHead;
 
 static int var_counter = 0;
+static int func_counter = 0;
 
 /* 为了实现作用域 */
 struct {
@@ -69,7 +70,13 @@ void insertSymbol(Symbol sym) {
         }
     #endif
 
-    sym->var_no = var_counter++;
+    if(sym->type->kind == FUNC) {
+        sym->var_no = func_counter++;
+    } else {
+        sym->var_no = var_counter++;
+    }
+
+    
 
     // 确定在哪个slot
     int slot = hash_pjw(sym->name);

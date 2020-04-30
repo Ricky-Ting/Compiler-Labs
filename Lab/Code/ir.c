@@ -5,7 +5,7 @@
 #include "symbol.h"
 #include "ir.h"
 
-//Type_t type_INT, type_FLOAT;
+Type_t type_INT, type_FLOAT;
 
 char random_name[55];
 int pos;
@@ -35,6 +35,7 @@ char* get_name() {
 Operand get_temp() {
     Operand op = myAlloc(sizeof(Operand_t));
     op->kind = TEMP;
+    op->mode = VALUE;
     op->u.var_no = temp_counter++;
     return op;
 }
@@ -45,6 +46,24 @@ Operand get_label() {
     op->u.label = label_counter++;
     return op;
 }
+
+Operand get_op(int id) {
+    Operand op = myAlloc(sizeof(Operand_t));
+    op->kind = VARIABLE;
+    op->mode = VALUE;
+    op->u.var_no = id;
+    return op;
+}
+
+Operand get_constant(int value) {
+    Operand op = myAlloc(sizeof(Operand_t));
+    op->kind = CONSTANT;
+    op->mode = VALUE;
+    op->u.value = value;
+    return op;
+}
+
+
 
 void append_codes(InterCodes codes) {
     if(codes == NULL) return;
@@ -68,7 +87,7 @@ void append_code(InterCode code) {
 }
 
 int get_size(Type type) {
-    assign(type != NULL);
+    assert(type != NULL);
     if(type->kind == BASIC)
         return 4;
     else if(type->kind == ARRAY)
@@ -79,8 +98,23 @@ int get_size(Type type) {
         else 
             return type->u.structure->totalsize;
     } else {
-        assign(0);
+        assert(0);
     }
+}
+
+Operand call_Exp(TreeNode_t* root, Operand place) {
+    ir_Exp(root, place);
+    Operand ret = place;
+    if(place->mode == ADDRESS) {
+        ret = get_temp();
+        
+        InterCode code = myAlloc(sizeof(InterCode_t));
+        code->kind = DEREF;
+        code->u.assign.left = ret;
+        code->u.assign.right = place;
+        append_code(code);
+    }
+    return ret;
 }
 
 void ir_init() {
@@ -171,9 +205,19 @@ void ir_ExtDef(TreeNode_t *root) {
     
         // 遇到函数 压栈
         stack_push(); 
+
+        InterCode code = myAlloc(sizeof(InterCode_t));
+        code->kind = FUNCTION;
+        append_code(code);
+
         // 创建符号
         Symbol sym = ir_FunDec(root->Tree_child[1], type);
         assert(root->Tree_child[2] != NULL);
+
+        Operand op = myAlloc(sizeof(Operand_t));
+        op->kind = FUNCT;
+        op->u.var_no = sym->var_no;
+        code->u.unary.op = op;
 
 
         if(findSymbol(sym->name) == NULL) {
@@ -270,11 +314,11 @@ Type ir_StructSpecifier(TreeNode_t* root) {
             // 匿名结构体指定一个名字
             strncpy(sym->name, get_name(), 55);
         } else {
-            strncpy(sym->name, sdt_OptTag(root->Tree_child[1]), 55);
+            strncpy(sym->name, ir_OptTag(root->Tree_child[1]), 55);
         }
 
         if(root->Tree_child[3] != NULL) {
-            type->u.structure = ir_DefList(root->Tree_child[3], 1);
+            type->u.structure = ir_DefList(root->Tree_child[3], 1, 0);
             
             FieldList cur = type->u.structure;
             while(cur->tail != NULL)
@@ -330,15 +374,23 @@ Symbol ir_VarDec(TreeNode_t* root, Type baseType, int size, int inStruct) {
         strncpy(sym->name, ir_ID(root->Tree_child[0]), 55);
         sym->type = type;
         sym->prev = sym->next = sym->area_prev = sym->area_next = NULL;
-        
-        //Symbol exist_sym = findSymbol(sym->name);
-        // TODO 结构体名字重复待考虑
-        if(existSymbol(sym->name) || findType(sym->name) != NULL) {
-            // Shound't reach here!!!
-            assert(0);
-        } else {
-            insertSymbol(sym);
+        insertSymbol(sym);
+
+        if(inStruct == 0 && baseType->kind != BASIC) {
+            int sz = get_size(baseType) / 4;
+
+            InterCode code = myAlloc(sizeof(InterCode_t));
+            code->kind = DEC;
+            code->u.dec.op = get_op(sym->var_no);
+            code->u.dec.size = sz;
+            append_code(code);
+        } else if(inStruct == 2) {
+            InterCode code = myAlloc(sizeof(InterCode_t));
+            code->kind = PARAM;
+            code->u.unary.op = get_op(sym->var_no);
+            append_code(code);
         }
+
         return sym;
     } else {
         assert(root->Tree_child[0] != NULL);
@@ -368,7 +420,7 @@ Symbol ir_FunDec(TreeNode_t* root, Type retType) {
     type->u.func.params = NULL;
 
     assert(root->Tree_child[0] != NULL);
-    strncpy(sym->name, sdt_ID(root->Tree_child[0]), 55);
+    strncpy(sym->name, ir_ID(root->Tree_child[0]), 55);
     sym->type = type;
 
     if(root->num_child == 4) {
@@ -414,7 +466,7 @@ FieldList ir_ParamDec(TreeNode_t* root) {
     assert(root->Tree_child[0] != NULL && root->Tree_child[1] != NULL);
 
     Type type = ir_Specifier(root->Tree_child[0]);
-    Symbol sym = ir_VarDec(root->Tree_child[1], type, 0, 0);
+    Symbol sym = ir_VarDec(root->Tree_child[1], type, 0, 2);
 
     FieldList field = myAlloc(sizeof(FieldList_t));
     strncpy(field->name, sym->name, 55);
@@ -436,7 +488,7 @@ void ir_CompSt(TreeNode_t* root, Type retType) {
 
     assert(root->num_child == 4);
     if(root->Tree_child[1] != NULL) {
-        ir_DefList(root->Tree_child[1], 0);
+        ir_DefList(root->Tree_child[1], 0, 0);
     }
 
     if(root->Tree_child[2] != NULL) {
@@ -491,7 +543,7 @@ void ir_Stmt(TreeNode_t* root, Type retType) {
         assert(root->Tree_child[1] != NULL);
 
         Operand t1 = get_temp();
-        ir_Exp(root->Tree_child[1], t1);
+        t1 = call_Exp(root->Tree_child[1], t1);
         
         InterCode code = myAlloc(sizeof(InterCode_t));
         code->kind = RETURN;
@@ -512,17 +564,17 @@ void ir_Stmt(TreeNode_t* root, Type retType) {
             Operand label1 = get_label();
             Operand label2 = get_label();
 
-            ir_Cond(Exp, label1, label2); // TODO
+            ir_Cond(root->Tree_child[2], label1, label2); // TODO
 
             InterCode l1 = myAlloc(sizeof(InterCode_t));
-            l1->kind = LABEL;
+            l1->kind = LABELSET;
             l1->u.label.op = label1;
             append_code(l1);
 
             ir_Stmt(root->Tree_child[4], retType);
 
             InterCode l2 = myAlloc(sizeof(InterCode_t));
-            l2->kind = LABEL;
+            l2->kind = LABELSET;
             l2->u.label.op = label2;
             append_code(l2);
         } else {
@@ -531,26 +583,26 @@ void ir_Stmt(TreeNode_t* root, Type retType) {
             Operand label3 = get_label();
 
             InterCode l1 = myAlloc(sizeof(InterCode_t));
-            l1->kind = LABEL;
+            l1->kind = LABELSET;
             l1->u.label.op = label1;
             append_code(l1);
 
-            ir_Cond(Exp, label2, label3); // TODO
+            ir_Cond(root->Tree_child[2], label2, label3); // TODO
 
             InterCode l2 = myAlloc(sizeof(InterCode_t));
-            l2->kind = LABEL;
+            l2->kind = LABELSET;
             l2->u.label.op = label2;
             append_code(l2);
 
-            ir_Stmt(root->Tree_child[6], retType);
+            ir_Stmt(root->Tree_child[4], retType);
 
             InterCode g1 = myAlloc(sizeof(InterCode_t));
-            g1->kind = LABEL;
+            g1->kind = LABELSET;
             g1->u.label.op = label1;
             append_code(g1);
 
             InterCode l3 = myAlloc(sizeof(InterCode_t));
-            l3->kind = LABEL;
+            l3->kind = LABELSET;
             l3->u.label.op = label3;
             append_code(l3);
         }
@@ -568,30 +620,30 @@ void ir_Stmt(TreeNode_t* root, Type retType) {
         Operand label2 = get_label();
         Operand label3 = get_label();
 
-        ir_Cond(Exp, label1, label2); // TODO
+        ir_Cond(root->Tree_child[2], label1, label2); // TODO
 
         InterCode l1 = myAlloc(sizeof(InterCode_t));
-        l1->kind = LABEL;
+        l1->kind = LABELSET;
         l1->u.label.op = label1;
         append_code(l1);
 
         ir_Stmt(root->Tree_child[4], retType);
 
         InterCode g1 = myAlloc(sizeof(InterCode_t));
-        g1->kind = LABEL;
+        g1->kind = LABELSET;
         g1->u.label.op = label3;
         append_code(g1);
 
 
         InterCode l2 = myAlloc(sizeof(InterCode_t));
-        l2->kind = LABEL;
+        l2->kind = LABELSET;
         l2->u.label.op = label2;
         append_code(l2);
 
         ir_Stmt(root->Tree_child[6], retType);
 
         InterCode l3 = myAlloc(sizeof(InterCode_t));
-        l3->kind = LABEL;
+        l3->kind = LABELSET;
         l3->u.label.op = label3;
         append_code(l3);
 
@@ -617,18 +669,19 @@ FieldList ir_DefList(TreeNode_t* root, int inStruct, int offset) {
     if(inStruct == 1) {
         FieldList field = ir_Def(root->Tree_child[0], inStruct, offset); 
         if(root->Tree_child[1] != NULL) {
-            // TODO
-            FieldList next_field = ir_DefList(root->Tree_child[1], inStruct);
             FieldList cur = field;
             while(cur->tail != NULL)
                 cur = cur->tail;
+            offset = cur->offset + cur->size;
+            FieldList next_field = ir_DefList(root->Tree_child[1], inStruct, offset);
+
             cur->tail = next_field;
         }
         return field;
     } else {
-        ir_Def(root->Tree_child[0], inStruct);
+        ir_Def(root->Tree_child[0], inStruct, offset);
         if(root->Tree_child[1] != NULL) {
-            ir_DefList(root->Tree_child[1], inStruct);
+            ir_DefList(root->Tree_child[1], inStruct, offset);
         }
         return NULL;
     }
@@ -687,7 +740,7 @@ FieldList ir_DecList(TreeNode_t* root, Type baseType, int inStruct, int offset) 
 
 }
 
-FieldList ir_Dec(TreeNode_t* root, Type baseType, int inStruct, int offset, int inc) {
+FieldList ir_Dec(TreeNode_t* root, Type baseType, int inStruct, int offset) {
     helper(root);
     /*
     * Dec -> VarDec
@@ -726,7 +779,7 @@ FieldList ir_Dec(TreeNode_t* root, Type baseType, int inStruct, int offset, int 
 
 /* Expressions */
 
-void ir_Exp(TreeNode_t* root, Operand place) {
+Type ir_Exp(TreeNode_t* root, Operand place) {
     helper(root);
     /*
     * Exp -> Exp ASSIGNOP Exp
@@ -758,10 +811,50 @@ void ir_Exp(TreeNode_t* root, Operand place) {
 
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "Exp") && IS_EQUAL(root->Tree_child[2]->Tree_token, "Exp")) {
             // Exp (ASSIGNOP AND OR RELOP PLUS MINUS STAR DIV) Exp
-            expType_t ltype = sdt_Exp(root->Tree_child[0]);
-            expType_t rtype = sdt_Exp(root->Tree_child[2]);
             if(IS_EQUAL(root->Tree_child[1]->Tree_token, "ASSIGNOP")) {
                 // TODO
+                Operand t1 = get_temp();
+                t1 = call_Exp(root->Tree_child[2], t1);
+                
+                if(root->Tree_child[0]->num_child == 1) {
+                    // Exp1->ID;
+                    TreeNode_t* id_node = root->Tree_child[0]->Tree_child[0];
+                    Symbol sym = findSymbol(id_node->Tree_val);
+
+                    Operand left = myAlloc(sizeof(Operand_t));
+                    left->kind = VARIABLE;
+                    left->mode = VALUE;
+                    left->u.var_no = sym->var_no;
+
+                    InterCode code = myAlloc(sizeof(InterCode_t));
+                    code->kind = ASSIGN;
+                    code->u.assign.left = left;
+                    code->u.assign.right = t1;
+                    append_code(code);
+
+                    // id = t1;
+                } else {
+                    // Exp1 -> Exp.Exp 或 Exp1 -> Exp[Exp]
+                    Operand left = get_temp();
+                    ir_Exp(root->Tree_child[0], left);
+
+                    // *p = t1;
+                    InterCode code = myAlloc(sizeof(InterCode_t));
+                    code->kind = REF_ASSIGN;
+                    code->u.assign.left = left;
+                    code->u.assign.right = t1;
+                    append_code(code);
+                }
+                
+                if(place != NULL) {
+                    InterCode code = myAlloc(sizeof(InterCode_t));
+                    code->kind = ASSIGN;
+                    code->u.assign.left = place;
+                    code->u.assign.right = t1;
+                    append_code(code);
+                }
+
+                return NULL;
 
             } else {
                 if(IS_EQUAL(root->Tree_child[1]->Tree_token, "AND") 
@@ -779,7 +872,7 @@ void ir_Exp(TreeNode_t* root, Operand place) {
                     ir_Cond(root, label1, label2);
 
                     InterCode l1 = myAlloc(sizeof(InterCode_t));
-                    l1->kind = LABEL;
+                    l1->kind = LABELSET;
                     l1->u.label.op = label1;
                     append_code(l1);
 
@@ -790,14 +883,17 @@ void ir_Exp(TreeNode_t* root, Operand place) {
                     append_code(code2);
 
                     InterCode l2 = myAlloc(sizeof(InterCode_t));
-                    l2->kind = LABEL;
+                    l2->kind = LABELSET;
                     l2->u.label.op = label2;
                     append_code(l2);
+
+                    return NULL;
                 } else {
+                    // PLUS MINUS STAR DIV
                     Operand op1 = get_temp();
                     Operand op2 = get_temp();
-                    ir_Exp(root->Tree_child[0], op1);
-                    ir_Exp(root->Tree_child[2], op2);
+                    op1 = call_Exp(root->Tree_child[0], op1);
+                    op2 = call_Exp(root->Tree_child[2], op2);
 
                     InterCode code = myAlloc(sizeof(InterCode_t));
                     code->u.binop.op1 = op1;
@@ -805,9 +901,9 @@ void ir_Exp(TreeNode_t* root, Operand place) {
                     code->u.binop.result = place;
 
                     if(IS_EQUAL(root->Tree_child[1]->Tree_token, "PLUS")) {
-                        code->kind = PLUS;
+                        code->kind = ADD;
                     } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "MINUS")) {
-                        code->kind = MINUS;
+                        code->kind = SUB;
                     } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "STAR")) {
                         code->kind = MUL;
                     } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "DIV")) {
@@ -816,16 +912,15 @@ void ir_Exp(TreeNode_t* root, Operand place) {
                         assert(0);
                     }
                     append_code(code);
-
+                    return NULL;
                 }
             }
-            
         }
 
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "ID")) {
             // Exp -> ID LP RP
             char func_name[55];
-            strncpy(func_name, sdt_ID(root->Tree_child[0]), 55);
+            strncpy(func_name, ir_ID(root->Tree_child[0]), 55);
             Symbol sym = findSymbol(func_name);
             
             if(IS_EQUAL(func_name, "read")) {
@@ -839,36 +934,50 @@ void ir_Exp(TreeNode_t* root, Operand place) {
                 code->u.assign.left = place;
 
                 Operand func = myAlloc(sizeof(Operand_t));
-                func->kind = FUNC;
-                func->u.val_no = sym->var_no;
+                func->kind = FUNCT;
+                func->u.var_no = sym->var_no;
                 code->u.assign.right = func;
                 append_code(code);
             }
 
-            return ;
-
+            return NULL;
         }
 
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "LP")) {
             // Exp -> LP Exp RP
             ir_Exp(root->Tree_child[1], place);
-            return;
+            return NULL;
         }
 
         if(IS_EQUAL(root->Tree_child[1]->Tree_token, "DOT")) {
             // Exp -> Exp DOT ID 
-            // TODO 
-            expType_t struct_type = sdt_Exp(root->Tree_child[0]);
+            // TOCHECK
+
+            if(place == NULL) 
+                return NULL;
+
+            place->mode = ADDRESS;
+
+            Type struct_type = ir_Exp(root->Tree_child[0], place);
+        
             char field_name[55];
-            strncpy(field_name, sdt_ID(root->Tree_child[2]), 55);
+            strncpy(field_name, ir_ID(root->Tree_child[2]), 55);
 
-
-            FieldList field = struct_type.type->u.structure;
+            FieldList field = struct_type->u.structure;
             while(field != NULL && !IS_EQUAL(field->name, field_name)) {
                 field  = field->tail;
             }
 
-            return;
+            if(field->offset != 0) {
+                InterCode code = myAlloc(sizeof(InterCode_t));
+                code->kind = ADD;
+                code->u.binop.result = place;
+                code->u.binop.op1 = place;
+                code->u.binop.op2 = get_constant(field->offset);
+                append_code(code);
+            }           
+
+            return field->type;
         }
 
         // Shound't reach here!!!
@@ -883,16 +992,16 @@ void ir_Exp(TreeNode_t* root, Operand place) {
             // Exp -> MINUS Exp
             // TODO 确认类型 报错
             Operand t1 = get_temp();
-            ir_Exp(root->Tree_child[1], t1);
+            t1 = call_Exp(root->Tree_child[1], t1);
 
             InterCode code2 = myAlloc(sizeof(InterCode_t));
-            code2->kind = MINUS;
+            code2->kind = SUB;
             code2->u.binop.op1 = &OP_ZERO;
-            code2->u.binop.op2 = t1
+            code2->u.binop.op2 = t1;
             code2->u.binop.result = place;
             append_code(code2);
 
-            return;
+            return NULL;
         }
 
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "NOT")) {
@@ -909,7 +1018,7 @@ void ir_Exp(TreeNode_t* root, Operand place) {
             ir_Cond(root, label1, label2);
 
             InterCode l1 = myAlloc(sizeof(InterCode_t));
-            l1->kind = LABEL;
+            l1->kind = LABELSET;
             l1->u.label.op = label1;
             append_code(l1);
 
@@ -920,10 +1029,10 @@ void ir_Exp(TreeNode_t* root, Operand place) {
             append_code(code2);
 
             InterCode l2 = myAlloc(sizeof(InterCode_t));
-            l2->kind = LABEL;
+            l2->kind = LABELSET;
             l2->u.label.op = label2;
             append_code(l2);
-            return;
+            return NULL;
         }
         // Shound't reach here!!!
         assert(0);
@@ -938,12 +1047,12 @@ void ir_Exp(TreeNode_t* root, Operand place) {
             // Exp -> ID LP Args RP
             // TODO
             char func_name[55];
-            strncpy(func_name, sdt_ID(root->Tree_child[0]), 55);
+            strncpy(func_name, ir_ID(root->Tree_child[0]), 55);
             Symbol sym = findSymbol(func_name);
 
             if(IS_EQUAL(func_name, "WRITE")) {
                 Operand t1 = get_temp();
-                ir_Exp(root->Tree_child[2]->Tree_child[0], t1);
+                t1 = call_Exp(root->Tree_child[2]->Tree_child[0], t1);
 
                 InterCode code = myAlloc(sizeof(InterCode_t));
                 code->kind = WRITE;
@@ -957,40 +1066,45 @@ void ir_Exp(TreeNode_t* root, Operand place) {
                 code->kind = CALL;
                 code->u.assign.left = place;
                 Operand func = myAlloc(sizeof(Operand_t));
-                func->kind = FUNC;
-                func->u.val_no = sym->var_no;
+                func->kind = FUNCT;
+                func->u.var_no = sym->var_no;
                 code->u.assign.right = func;
                 append_code(code);
             } 
 
-            return;
+            return NULL;
 
         }
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "Exp")) {
             // Exp -> Exp LB Exp RB
             // TODO
-            expType_t ltype = sdt_Exp(root->Tree_child[0]);
-            expType_t rtype = sdt_Exp(root->Tree_child[2]);
+            if(place == NULL)
+                return NULL;
 
-            if(ltype.type->kind != ARRAY) {
-                // 不是数组类型 或者维度不对
-                // 报错 类型10: 对非数组型变量使用"[...]"操作符
-                sdt_error(10, root->Tree_lineno, "ARRAYH");
-                return exp_INT;
-            }
+            place->mode = ADDRESS;
 
-            if(!same_type(rtype, exp_INT)) {
-                // 下标非整数
-                // 报错 类型12: 数组访问操作符"[...]"中出现非整数
-                sdt_error(12, root->Tree_lineno, "ARRAY");
-                return exp_INT;
-            }
+            Type type = ir_Exp(root->Tree_child[0], place);
+            
+            Operand t1 = get_temp();
 
-            ltype.type = ltype.type->u.array.elem;
+            t1 = call_Exp(root->Tree_child[2], t1);
 
-            ltype.var = 1;
+            InterCode code = myAlloc(sizeof(InterCode_t));
+            code->kind = MUL;
+            code->u.binop.result = t1;
+            code->u.binop.op1 = t1;
+            code->u.binop.op2 = get_constant(type->u.array.totalsize / type->u.array.size);
+            append_code(code);
 
-            return ltype;
+
+            InterCode code2 = myAlloc(sizeof(InterCode_t));
+            code2->kind = ADD;
+            code2->u.binop.result = place;
+            code2->u.binop.op1 = place;
+            code2->u.binop.op2 = t1;
+            append_code(code2);
+
+            return type->u.array.elem;
         }
         // Shound't reach here!!!
         assert(0);
@@ -1001,25 +1115,61 @@ void ir_Exp(TreeNode_t* root, Operand place) {
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "ID")) {
             // Exp -> ID
             // TODO 查找符号表 获取ID的类型
+            if(place == NULL)
+                return NULL;
+
             char name[55];
-            strncpy(name, sdt_ID(root->Tree_child[0]), 55);
+            strncpy(name, ir_ID(root->Tree_child[0]), 55);
             Symbol sym = findSymbol(name);
-            if(sym == NULL) {
-                // 变量未定义
-                // 报错 类型1: 变量在使用时未经定义
-                sdt_error(1, root->Tree_lineno, "Variable");
-                return exp_INT;
+
+            
+
+            if(sym->type->kind == BASIC) {
+                Operand op = myAlloc(sizeof(Operand_t));
+                op->kind = VARIABLE;
+                op->mode = VALUE;
+                op->u.var_no = sym->var_no;
+                
+                InterCode code = myAlloc(sizeof(InterCode_t));
+                code->kind = ASSIGN;
+                code->u.assign.left = place;
+                code->u.assign.right = op;
+                append_code(code);
+
+            } else {
+                place->mode = ADDRESS;
+
+                Operand op = myAlloc(sizeof(Operand_t));
+                op->kind = VARIABLE;
+                op->mode = ADDRESS;
+                op->u.var_no = sym->var_no;
+                
+                InterCode code = myAlloc(sizeof(InterCode_t));
+                code->kind = ADDR;
+                code->u.assign.left = place;
+                code->u.assign.right = op;
+                append_code(code);
+
             }
-            expType_t type = {sym->type, 1};
-            return type;
+
+            return sym->type;
         }
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "INT")) {
             // Exp -> INT
-            return exp_INT;
+
+            if(place != NULL){
+                InterCode code = myAlloc(sizeof(InterCode_t));
+                code->kind = ASSIGN;
+                code->u.assign.left = place;
+                code->u.assign.right = get_constant(root->Tree_child[0]->val_UINT);
+                append_code(code);
+            }
+            return NULL;
         }
         if(IS_EQUAL(root->Tree_child[0]->Tree_token, "FLOAT")) {
             // Exp -> FLOAT
-            return exp_FLOAT;
+            assert(0);
+            return NULL;
         }
         // Shound't reach here!!!
         assert(0);
@@ -1034,7 +1184,7 @@ void ir_Exp(TreeNode_t* root, Operand place) {
 }
 
 
-int ir_Args(TreeNode_t* root) {
+void ir_Args(TreeNode_t* root) {
     helper(root);
     /*
     * Args -> Exp COMMA Args
@@ -1052,16 +1202,89 @@ int ir_Args(TreeNode_t* root) {
 
 
     Operand t1 = myAlloc(sizeof(Operand_t));
-    ir_Exp(root->Tree_child[0], t1);
+    Type type = ir_Exp(root->Tree_child[0], t1);
+    if(t1->mode == ADDRESS && (type == NULL || type == BASIC) ) {
+        InterCode code1 = myAlloc(sizeof(InterCode_t));
 
+        Operand op = get_temp();
+        op->mode = VALUE;
+
+        code1->kind = DEREF;
+        code1->u.assign.left = op;
+        code1->u.assign.right = t1;
+        append_code(code1);
+
+        t1 = op;
+    }
+    
     InterCode code = myAlloc(sizeof(InterCode_t));
     code->kind = ARG;
     code->u.unary.op = t1;
     append_code(code);
-    
     return;
 }
 
+
+void ir_Cond(TreeNode_t* root, Operand label_true, Operand label_false) {
+    
+    if(root->num_child == 3) {
+        if(IS_EQUAL(root->Tree_child[1]->Tree_token, "RELOP")) {
+            Operand t1 = get_temp();
+            Operand t2 = get_temp();
+
+            t1 = call_Exp(root->Tree_child[0], t1);
+            t2 = call_Exp(root->Tree_child[2], t2);
+
+            InterCode code = myAlloc(sizeof(InterCode_t));
+            code->kind = CONDJMP;
+            code->u.condjmp.op1 = t1;
+            code->u.condjmp.op2 = t2;
+            snprintf(code->u.condjmp.relop, 5, "%s",root->Tree_child[1]->Tree_val);
+            append_code(code);
+
+        } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "AND")) {
+            Operand label1 = get_label();
+            ir_Cond(root->Tree_child[0], label1, label_false);
+
+            InterCode code = myAlloc(sizeof(InterCode_t));
+            code->kind = LABELSET;
+            code->u.label.op = label1;
+            append_code(code);
+
+            ir_Cond(root->Tree_child[2], label_true, label_false);
+        } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "OR")) {
+            Operand label1 = get_label();
+            ir_Cond(root->Tree_child[0], label_true, label1);
+
+            InterCode code = myAlloc(sizeof(InterCode_t));
+            code->kind = LABELSET;
+            code->u.label.op = label1;
+            append_code(code);
+
+            ir_Cond(root->Tree_child[2], label_true, label_false);
+        }
+    }
+
+    if(root->num_child == 2 && IS_EQUAL(root->Tree_child[0]->Tree_token, "NOT") ) {
+        ir_Cond(root->Tree_child[1], label_false, label_true);
+    } 
+
+    Operand t1 = get_temp();
+    t1 = call_Exp(root, t1);
+
+    InterCode code = myAlloc(sizeof(InterCode_t));
+    code->kind = CONDJMP;
+    code->u.condjmp.op1 = t1;
+    code->u.condjmp.op2 = &OP_ZERO;
+    snprintf(code->u.condjmp.relop, 5, "!=");
+    append_code(code);
+
+    InterCode code2 = myAlloc(sizeof(InterCode_t));
+    code->kind = GOTO;
+    code->u.label.op = label_false;
+    append_code(code2);
+    
+}
 
 /* Terminator */
 char* ir_ID(TreeNode_t* root) {
@@ -1079,3 +1302,10 @@ int ir_TYPE(TreeNode_t* root) {
         assert(0);
     return -1;
 }
+
+
+
+
+
+
+

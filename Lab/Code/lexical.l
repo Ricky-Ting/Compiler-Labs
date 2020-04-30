@@ -63,7 +63,7 @@ delimit " "|\t|\r
 ";"         { return SEMI; }
 ","         { return COMMA; }
 "="         { return ASSIGNOP; }
-{relop}     { return RELOP; }
+{relop}     { strcpy(yylval.relop, yytext); return RELOP; }
 "+"         { return PLUS;}
 "-"         { return MINUS;}
 "*"         { return STAR;}
