@@ -117,6 +117,33 @@ Operand call_Exp(TreeNode_t* root, Operand place) {
     return ret;
 }
 
+void add_read_write() {
+    Symbol readfunc = myAlloc(sizeof(Symbol_t));
+    readfunc->prev = readfunc->next = readfunc->area_next = readfunc->area_prev;
+    snprintf(readfunc->name, 55, "read");
+    Type readtype = myAlloc(sizeof(Type_t));
+    readtype->kind = FUNC;
+    readtype->u.func.params = NULL;
+    readtype->u.func.ret = &type_INT;
+    readfunc->type = readtype;
+
+    Symbol writefunc = myAlloc(sizeof(Symbol_t));
+    writefunc->prev = writefunc->next = writefunc->area_next = writefunc->area_prev;
+    snprintf(writefunc->name, 55, "read");
+    Type writetype = myAlloc(sizeof(Type_t));
+    writetype->kind = FUNC;
+    writetype->u.func.ret = NULL;
+    writefunc->type = writetype;
+
+    FieldList field = myAlloc(sizeof(FieldList_t));
+    snprintf(field->name, 5, "x");
+    field->type = &type_INT;
+    field->tail = NULL;
+
+    writetype->u.func.params = field;
+    return;
+}
+
 void ir_init() {
 
     random_name[0] = '#';
@@ -135,6 +162,7 @@ void ir_init() {
     OP_ONE.u.value = 1;
 
     // Add read and write
+    add_read_write();
     // TODO
     return;
 }
