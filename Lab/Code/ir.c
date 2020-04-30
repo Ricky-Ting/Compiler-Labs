@@ -18,7 +18,7 @@ InterCodes head, tail; // 整个代码块的head和tail
 Operand_t OP_ZERO, OP_ONE;
 
 void helper(TreeNode_t* root) {
-    fprintf(stderr, "In %s\n", root->Tree_token);
+    //fprintf(stderr, "In %s\n", root->Tree_token);
 }
 
 char* get_name() {
@@ -129,7 +129,7 @@ void add_read_write() {
 
     Symbol writefunc = myAlloc(sizeof(Symbol_t));
     writefunc->prev = writefunc->next = writefunc->area_next = writefunc->area_prev;
-    snprintf(writefunc->name, 55, "read");
+    snprintf(writefunc->name, 55, "write");
     Type writetype = myAlloc(sizeof(Type_t));
     writetype->kind = FUNC;
     writetype->u.func.ret = NULL;
@@ -141,6 +141,10 @@ void add_read_write() {
     field->tail = NULL;
 
     writetype->u.func.params = field;
+
+    insertSymbol(writefunc);
+    insertSymbol(readfunc);
+
     return;
 }
 
