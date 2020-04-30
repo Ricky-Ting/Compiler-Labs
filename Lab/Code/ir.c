@@ -18,7 +18,7 @@ InterCodes head, tail; // 整个代码块的head和tail
 Operand_t OP_ZERO, OP_ONE;
 
 void helper(TreeNode_t* root) {
-    //fprintf(stderr, "In %s\n", root->Tree_token);
+    fprintf(stderr, "In %s\n", root->Tree_token);
 }
 
 char* get_name() {
@@ -1269,7 +1269,7 @@ void ir_Cond(TreeNode_t* root, Operand label_true, Operand label_false) {
             code->u.condjmp.op2 = t2;
             snprintf(code->u.condjmp.relop, 5, "%s",root->Tree_child[1]->Tree_val);
             append_code(code);
-
+            return;
         } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "AND")) {
             Operand label1 = get_label();
             ir_Cond(root->Tree_child[0], label1, label_false);
@@ -1280,6 +1280,8 @@ void ir_Cond(TreeNode_t* root, Operand label_true, Operand label_false) {
             append_code(code);
 
             ir_Cond(root->Tree_child[2], label_true, label_false);
+
+            return;
         } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "OR")) {
             Operand label1 = get_label();
             ir_Cond(root->Tree_child[0], label_true, label1);
@@ -1290,11 +1292,14 @@ void ir_Cond(TreeNode_t* root, Operand label_true, Operand label_false) {
             append_code(code);
 
             ir_Cond(root->Tree_child[2], label_true, label_false);
+
+            return;
         }
     }
 
     if(root->num_child == 2 && IS_EQUAL(root->Tree_child[0]->Tree_token, "NOT") ) {
         ir_Cond(root->Tree_child[1], label_false, label_true);
+        return;
     } 
 
     Operand t1 = get_temp();
