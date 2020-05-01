@@ -1283,7 +1283,8 @@ void ir_Args(TreeNode_t* root) {
 
     Operand t1 = get_temp();
     Type type = ir_Exp(root->Tree_child[0], t1);
-    if(t1->mode == ADDRESS && (type == NULL || type == BASIC) ) {
+
+    if(t1->mode == ADDRESS && (type == NULL || type->kind == BASIC) ) {
         InterCode code1 = myAlloc(sizeof(InterCode_t));
 
         Operand op = get_temp();
