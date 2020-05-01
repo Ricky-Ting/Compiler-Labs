@@ -8,6 +8,7 @@
 FILE* out = NULL;
 
 void print_op(Operand op) {
+    assert(op != NULL);
     if(op->kind == VARIABLE) {
         fprintf(out, "v%d", op->u.var_no);
     } else if(op->kind == TEMP) {
@@ -146,6 +147,7 @@ void print_WRITE(InterCode code) {
 void printIR(InterCodes head, InterCodes tail, FILE* file_ir) {
     InterCodes cur = head;
     out = file_ir;
+    //out = stderr;
     while(cur!= NULL) {
         switch(cur->code->kind){
         case LABELSET:

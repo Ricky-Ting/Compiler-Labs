@@ -1122,6 +1122,10 @@ Type ir_Exp(TreeNode_t* root, Operand place) {
             } else {
                 ir_Args(root->Tree_child[2]);
 
+                if(place == NULL) {
+                    place = get_temp();
+                }
+
                 InterCode code = myAlloc(sizeof(InterCode_t));
                 code->kind = CALL;
                 code->u.assign.left = place;
