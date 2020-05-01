@@ -584,7 +584,7 @@ void ir_Stmt(TreeNode_t* root, Type retType) {
     if(root->num_child == 2) {
         // Stmt -> Exp SEMI;
         assert(root->Tree_child[0] != NULL);
-        ir_Exp(root->Tree_child[0], NULL);
+        ir_Exp(root->Tree_child[0], get_temp());
         return;
     }
 
@@ -822,7 +822,7 @@ FieldList ir_Dec(TreeNode_t* root, Type baseType, int inStruct, int offset) {
             InterCode code = myAlloc(sizeof(InterCode_t));
 
             Operand t1 = get_temp();
-            call_Exp(root->Tree_child[2], t1);
+            t1 = call_Exp(root->Tree_child[2], t1);
 
             code->kind = ASSIGN;
             code->u.assign.left = get_op(sym->var_no);
@@ -1191,7 +1191,7 @@ Type ir_Exp(TreeNode_t* root, Operand place) {
             //printIR(head, tail);
             //printf("%s \n", sym->name);
             
-
+            //fprintf(stderr, "%s\n", name);
             if(sym->type->kind == BASIC) {
                 Operand op = myAlloc(sizeof(Operand_t));
                 op->kind = VARIABLE;
@@ -1366,6 +1366,8 @@ void ir_Cond(TreeNode_t* root, Operand label_true, Operand label_false) {
         return;
     } 
 
+
+    //printf("Here\n");
     Operand t1 = get_temp();
     t1 = call_Exp(root, t1);
 
@@ -1378,8 +1380,8 @@ void ir_Cond(TreeNode_t* root, Operand label_true, Operand label_false) {
     append_code(code);
 
     InterCode code2 = myAlloc(sizeof(InterCode_t));
-    code->kind = GOTO;
-    code->u.label.op = label_false;
+    code2->kind = GOTO;
+    code2->u.label.op = label_false;
     append_code(code2);
     
 }
