@@ -1,6 +1,7 @@
 #ifndef IR_H
 #define IR_H
 
+#include <stdio.h>
 #include "Tree.h"
 #include "symbol.h"
 
@@ -54,7 +55,7 @@ struct expRet_ {
 void ir_init();
 
 /* High-level Definitions */
-void ir_Program(TreeNode_t* root);
+void ir_Program(TreeNode_t* root, FILE* ir_file);
 void ir_ExtDefList(TreeNode_t *root);
 void ir_ExtDef(TreeNode_t *root);
 void ir_ExtDecList(TreeNode_t *root, Type baseType);
@@ -91,7 +92,7 @@ void ir_Cond(TreeNode_t* root, Operand label_true, Operand label_false);
 char* ir_ID(TreeNode_t* root);
 int ir_TYPE(TreeNode_t* root);
 
-void printIR(InterCodes head, InterCodes tail);
+void printIR(InterCodes head, InterCodes tail, FILE* file);
 
 
 #endif

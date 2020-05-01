@@ -1,15 +1,19 @@
 #include "ir.h"
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
+
+FILE* out = NULL;
 
 void print_op(Operand op) {
     if(op->kind == VARIABLE) {
-        printf("v%d", op->u.var_no);
+        fprintf(out, "v%d", op->u.var_no);
     } else if(op->kind == TEMP) {
-        printf("t%d", op->u.var_no);
+        fprintf(out, "t%d", op->u.var_no);
     } else if(op->kind == CONSTANT) {
-        printf("#%d", op->u.value);
+        fprintf(out, "#%d", op->u.value);
     } else {
         assert(0);
     }
@@ -17,130 +21,131 @@ void print_op(Operand op) {
 
 
 void print_LABELSET(InterCode code) {
-    printf("LABEL l%d :\n", code->u.label.op->u.label);
+    fprintf(out, "LABEL l%d :\n", code->u.label.op->u.label);
 }
 
 void print_FUNCTION(InterCode code) {
     assert(code->u.unary.op->kind == FUNCT);
     if(code->u.unary.op->u.var_no == 0) 
-        printf("FUNCTION main :\n");
+        fprintf(out, "FUNCTION main :\n");
     else 
-        printf("FUNCTION f%d :\n", code->u.unary.op->u.var_no);
+        fprintf(out, "FUNCTION f%d :\n", code->u.unary.op->u.var_no);
 }
 
 void print_ASSIGN(InterCode code) {
     print_op(code->u.assign.left);
-    printf(" := ");
+    fprintf(out, " := ");
     print_op(code->u.assign.right);
-    printf("\n");
+    fprintf(out,"\n");
 }
 
 void print_ARI(InterCode code) {
     print_op(code->u.binop.result);
-    printf(" := ");
+    fprintf(out," := ");
     print_op(code->u.binop.op1);
     switch(code->kind) {
     case ADD:
-        printf(" + ");
+        fprintf(out, " + ");
         break;
     case SUB:
-        printf(" - ");
+        fprintf(out, " - ");
         break;
     case MUL:
-        printf(" * ");
+        fprintf(out, " * ");
         break;
     case DIV:
-        printf(" / ");
+        fprintf(out, " / ");
         break;
     default:
         assert(0);
     }
     print_op(code->u.binop.op2);
-    printf("\n");
+    fprintf(out, "\n");
 }
 
 void print_ADDR(InterCode code) {
     print_op(code->u.assign.left);
-    printf(" := &");
+    fprintf(out, " := &");
     print_op(code->u.assign.right);
-    printf("\n");
+    fprintf(out, "\n");
 }
 
 void print_DEREF(InterCode code) {
     print_op(code->u.assign.left);
-    printf(" := *");
+    fprintf(out, " := *");
     print_op(code->u.assign.right);
-    printf("\n");
+    fprintf(out, "\n");
 }
 
 void print_REF_ASSIGN(InterCode code) {
-    printf("*");
+    fprintf(out, "*");
     print_op(code->u.assign.left);
-    printf(" := ");
+    fprintf(out, " := ");
     print_op(code->u.assign.right);
-    printf("\n");
+    fprintf(out, "\n");
 }
 
 void print_GOTO(InterCode code) {
-    printf("GOTO l%d\n", code->u.label.op->u.label);
+    fprintf(out, "GOTO l%d\n", code->u.label.op->u.label);
 }
 
 void print_CONDJMP(InterCode code) {
-    printf("IF ");
+    fprintf(out, "IF ");
     print_op(code->u.condjmp.op1);
-    printf(" %s ", code->u.condjmp.relop);
+    fprintf(out, " %s ", code->u.condjmp.relop);
     print_op(code->u.condjmp.op2);
-    printf(" GOTO l%d\n", code->u.condjmp.target->u.label);
+    fprintf(out, " GOTO l%d\n", code->u.condjmp.target->u.label);
 }
 
 void print_RETURN(InterCode code) {
-    printf("RETURN ");
+    fprintf(out, "RETURN ");
     print_op(code->u.unary.op);
-    printf("\n");
+    fprintf(out, "\n");
 }
 
 void print_DEC(InterCode code) {
-    printf("DEC ");
+    fprintf(out, "DEC ");
     print_op(code->u.dec.op);
-    printf(" %d\n", code->u.dec.size);
+    fprintf(out, " %d\n", code->u.dec.size);
 }
 
 void print_ARG(InterCode code) {
-    printf("ARG ");
+    fprintf(out, "ARG ");
     print_op(code->u.unary.op);
-    printf("\n");
+    fprintf(out, "\n");
 }
 
 void print_CALL(InterCode code) {
     print_op(code->u.assign.left);
     assert(code->u.assign.right->kind == FUNCT);
     if(code->u.assign.right->u.var_no == 0) {
-        printf(" := CALL main\n");
+        fprintf(out, " := CALL main\n");
     } else {
-        printf(" := CALL f%d\n", code->u.assign.right->u.var_no);
+        fprintf(out, " := CALL f%d\n", code->u.assign.right->u.var_no);
     }
 }
 
 void print_PARAM(InterCode code) {
-    printf("PARAM ");
+    fprintf(out, "PARAM ");
     print_op(code->u.unary.op);
-    printf("\n");
+    fprintf(out, "\n");
 }
 
 void print_READ(InterCode code) {
-    printf("READ ");
+    fprintf(out, "READ ");
     print_op(code->u.unary.op);
-    printf("\n");
+    fprintf(out, "\n");
 }
 
 void print_WRITE(InterCode code) {
-    printf("WRITE ");
+    fprintf(out, "WRITE ");
     print_op(code->u.unary.op);
-    printf("\n");
+    fprintf(out, "\n");
 }
 
-void printIR(InterCodes head, InterCodes tail) {
+void printIR(InterCodes head, InterCodes tail, FILE* file_ir) {
     InterCodes cur = head;
+    out = file_ir;
     while(cur!= NULL) {
         switch(cur->code->kind){
         case LABELSET:

@@ -1,21 +1,24 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include <stdlib.h>
 #include "Tree.h"
 #include "symbol.h"
 #include "ir.h"
 
 Type_t type_INT, type_FLOAT;
 
-char random_name[55];
+/* 为匿名结构体生成名字 */
+char random_name[55];  
 int pos;
 
-int temp_counter = 0;
-int label_counter = 0;
+int temp_counter = 1; // 给临时变量编号
+int label_counter = 1; // 给label编号
+
 
 InterCodes head, tail; // 整个代码块的head和tail
 
-Operand_t OP_ZERO, OP_ONE;
+Operand_t OP_ZERO, OP_ONE; // 常量0和1的operand
 
 void helper(TreeNode_t* root) {
     //fprintf(stderr, "In %s\n", root->Tree_token);
@@ -173,7 +176,7 @@ void ir_init() {
 
 
 /* High-level Definitions */
-void ir_Program(TreeNode_t* root) {
+void ir_Program(TreeNode_t* root, FILE* ir_file) {
     ir_init();
     helper(root);
     /*
@@ -186,7 +189,7 @@ void ir_Program(TreeNode_t* root) {
     if(root->Tree_child[0] != NULL)
         ir_ExtDefList(root->Tree_child[0]);
 
-    printIR(head, tail);
+    printIR(head, tail, ir_file);
     //showFunc(); // 打印所有未定义函数 Not required in Lab3
     return;
 }
@@ -1317,7 +1320,7 @@ void ir_Cond(TreeNode_t* root, Operand label_true, Operand label_false) {
             code->u.condjmp.op1 = t1;
             code->u.condjmp.op2 = t2;
             code->u.condjmp.target = label_true;
-            snprintf(code->u.condjmp.relop, 5, "%s",root->Tree_child[1]->Tree_val);
+            snprintf(code->u.condjmp.relop, 55, "%s",root->Tree_child[1]->Tree_val);
             append_code(code);
 
             InterCode code2 = myAlloc(sizeof(InterCode_t));
