@@ -1,5 +1,6 @@
 
 /Code/*
+/Test/*
 !/Code/*.c
 !/Code/*.h
 /Code/lex.yy.c
@@ -9,5 +10,4 @@
 !/Code/Makefile
 !/Code/Makefile.backup
 
-/Test/*
 
