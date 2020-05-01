@@ -14,7 +14,7 @@ extern TreeNode_t* getRoot();
 int main(int argc, char** argv) {
     if (argc <= 2) return 1;
     FILE* f = fopen(argv[1], "r");
-    FILE* ir_file = fopen(argv[1], "w");
+    FILE* ir_file = fopen(argv[2], "w");
     if (!f) {
         perror(argv[1]);
         return 1;
