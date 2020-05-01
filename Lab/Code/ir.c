@@ -258,7 +258,11 @@ void ir_ExtDef(TreeNode_t *root) {
             insertSymbol(sym);
             Operand op = myAlloc(sizeof(Operand_t));
             op->kind = FUNCT;
-            op->u.var_no = sym->var_no;
+            if(IS_EQUAL(sym->name, "main")) {
+                op->u.var_no = sym->var_no = 0;
+            } else {
+                op->u.var_no = sym->var_no;
+            }
             code->u.unary.op = op;
         } else {
             // 只会出现一次函数定义
@@ -415,6 +419,7 @@ Symbol ir_VarDec(TreeNode_t* root, Type baseType, int size, int inStruct) {
         strncpy(sym->name, ir_ID(root->Tree_child[0]), 55);
         sym->type = type;
         sym->prev = sym->next = sym->area_prev = sym->area_next = NULL;
+        sym->mode = VALUE;
         insertSymbol(sym);
 
         if(inStruct == 0 && baseType->kind != BASIC) {
@@ -458,6 +463,16 @@ Symbol ir_FunDec(TreeNode_t* root, Type retType, Symbol sym) {
     if(root->num_child == 4) {
         assert(root->Tree_child[2] != NULL);
         sym->type->u.func.params = ir_VarList(root->Tree_child[2]);
+
+        FieldList field = sym->type->u.func.params;
+        while(field != NULL) {
+            if(field->type->kind != BASIC) {
+                Symbol fieldsym = findSymbol(field->name);
+                fieldsym->mode = ADDRESS;
+            }
+            field = field->tail;
+        }
+
     }
 
     return sym;
@@ -629,7 +644,7 @@ void ir_Stmt(TreeNode_t* root, Type retType) {
             ir_Stmt(root->Tree_child[4], retType);
 
             InterCode g1 = myAlloc(sizeof(InterCode_t));
-            g1->kind = LABELSET;
+            g1->kind = GOTO;
             g1->u.label.op = label1;
             append_code(g1);
 
@@ -1175,20 +1190,33 @@ Type ir_Exp(TreeNode_t* root, Operand place) {
                 append_code(code);
 
             } else if(sym->type->kind == ARRAY || sym->type->kind == STRUCTURE){
-                
-                place->mode = ADDRESS;
+                if(sym->mode == VALUE) {
+                    place->mode = ADDRESS;
 
-                Operand op = myAlloc(sizeof(Operand_t));
-                op->kind = VARIABLE;
-                op->mode = ADDRESS;
-                op->u.var_no = sym->var_no;
-                
-                InterCode code = myAlloc(sizeof(InterCode_t));
-                code->kind = ADDR;
-                code->u.assign.left = place;
-                code->u.assign.right = op;
-                append_code(code);
+                    Operand op = myAlloc(sizeof(Operand_t));
+                    op->kind = VARIABLE;
+                    op->mode = ADDRESS;
+                    op->u.var_no = sym->var_no;
+                    
+                    InterCode code = myAlloc(sizeof(InterCode_t));
+                    code->kind = ADDR;
+                    code->u.assign.left = place;
+                    code->u.assign.right = op;
+                    append_code(code);
+                } else {
+                    place->mode = ADDRESS;
 
+                    Operand op = myAlloc(sizeof(Operand_t));
+                    op->kind = VARIABLE;
+                    op->mode = ADDRESS;
+                    op->u.var_no = sym->var_no;
+                    
+                    InterCode code = myAlloc(sizeof(InterCode_t));
+                    code->kind = ASSIGN;
+                    code->u.assign.left = place;
+                    code->u.assign.right = op;
+                    append_code(code);
+                }
             } else {
                 assert(0);
             }

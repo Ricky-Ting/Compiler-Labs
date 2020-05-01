@@ -19,7 +19,7 @@ typedef InterCodes_t* InterCodes;
 
 struct Operand_ {
     enum { VARIABLE, TEMP, FUNCT, LABEL, CONSTANT} kind;
-    enum { VALUE, ADDRESS } mode;
+    enum MODE mode;
     union {
         int var_no;
         int label;

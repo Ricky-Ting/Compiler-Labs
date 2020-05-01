@@ -10,8 +10,8 @@ Symbol typeTable[HASH_TABLE_SZ+1]; // For struct type
 
 Node FuncHead;
 
-static int var_counter = 0;
-static int func_counter = 0;
+static int var_counter = 1;
+static int func_counter = 1;
 
 /* 为了实现作用域 */
 struct {

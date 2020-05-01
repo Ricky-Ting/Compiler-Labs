@@ -40,11 +40,13 @@ struct FieldList_ {
     int size;
 };
 
+enum MODE {VALUE, ADDRESS};
 
 struct Symbol_ {
     char name[55];
     Type type;
     int var_no;
+    enum MODE mode;
     Symbol prev;
     Symbol next;
     Symbol area_prev;

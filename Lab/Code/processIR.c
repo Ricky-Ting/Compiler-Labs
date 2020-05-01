@@ -22,7 +22,10 @@ void print_LABELSET(InterCode code) {
 
 void print_FUNCTION(InterCode code) {
     assert(code->u.unary.op->kind == FUNCT);
-    printf("FUNCTION f%d :\n", code->u.unary.op->u.var_no);
+    if(code->u.unary.op->u.var_no == 0) 
+        printf("FUNCTION main :\n");
+    else 
+        printf("FUNCTION f%d :\n", code->u.unary.op->u.var_no);
 }
 
 void print_ASSIGN(InterCode code) {
@@ -111,7 +114,11 @@ void print_ARG(InterCode code) {
 void print_CALL(InterCode code) {
     print_op(code->u.assign.left);
     assert(code->u.assign.right->kind == FUNCT);
-    printf(" := CALL f%d\n", code->u.assign.right->u.var_no);
+    if(code->u.assign.right->u.var_no == 0) {
+        printf(" := CALL main\n");
+    } else {
+        printf(" := CALL f%d\n", code->u.assign.right->u.var_no);
+    }
 }
 
 void print_PARAM(InterCode code) {
