@@ -547,3 +547,147 @@ void ir_StmtList(TreeNode_t* root, Type retType) {
         ir_StmtList(root->Tree_child[1], retType);
     return;
 }
+
+
+void ir_Stmt(TreeNode_t* root, Type retType) {
+    helper(root);
+    /* 
+    * Stmt -> Exp SEMI
+    * Stmt -> CompSt
+    * Stmt -> RETURN Exp SEMI
+    * Stmt -> IF LP Exp RP Stmt
+    * Stmt -> IF LP Exp RP Stmt ELSE Stmt
+    * Stmt -> WHILE LP Exp RP Stmt
+    */
+
+    if(root->num_child == 1) {
+        // Stmt -> CompSt
+        assert(root->Tree_child[0] != NULL);
+        stack_push();
+        ir_CompSt(root->Tree_child[0], retType);
+        stack_pop();
+        return;
+    }
+
+    if(root->num_child == 2) {
+        // Stmt -> Exp SEMI;
+        assert(root->Tree_child[0] != NULL);
+        ir_Exp(root->Tree_child[0], 0);
+        return;
+    }
+
+    if(root->num_child == 3) {
+        // Stmt -> RETURN Exp SEMI
+        assert(root->Tree_child[1] != NULL);
+
+        // 返回值一定是int
+
+        Operand t1 = call_Exp(root->Tree_child[1], 1).op;
+        
+        InterCode code = myAlloc(sizeof(InterCode_t));
+        code->kind = RETURN;
+        code->u.unary.op = t1;
+        append_code(code);
+        return;
+    }
+
+    if(root->num_child == 5) {
+        // Stmt -> IF LP Exp RP Stmt
+        // Stmt -> WHILE LP Exp RP Stmt
+        assert(root->Tree_child[2] != NULL);
+        assert(root->Tree_child[4] != NULL);
+
+        if(IS_EQUAL(root->Tree_child[0]->Tree_token, "IF")) {
+            Operand label1 = get_label();
+            Operand label2 = get_label();
+
+            ir_Cond(root->Tree_child[2], label1, label2); // TODO
+
+            InterCode l1 = myAlloc(sizeof(InterCode_t));
+            l1->kind = LABELSET;
+            l1->u.label.op = label1;
+            append_code(l1);
+
+            ir_Stmt(root->Tree_child[4], retType);
+
+            InterCode l2 = myAlloc(sizeof(InterCode_t));
+            l2->kind = LABELSET;
+            l2->u.label.op = label2;
+            append_code(l2);
+        } else {
+            Operand label1 = get_label();
+            Operand label2 = get_label();
+            Operand label3 = get_label();
+
+            InterCode l1 = myAlloc(sizeof(InterCode_t));
+            l1->kind = LABELSET;
+            l1->u.label.op = label1;
+            append_code(l1);
+
+            ir_Cond(root->Tree_child[2], label2, label3); // TODO
+
+            InterCode l2 = myAlloc(sizeof(InterCode_t));
+            l2->kind = LABELSET;
+            l2->u.label.op = label2;
+            append_code(l2);
+
+            ir_Stmt(root->Tree_child[4], retType);
+
+            InterCode g1 = myAlloc(sizeof(InterCode_t));
+            g1->kind = GOTO;
+            g1->u.label.op = label1;
+            append_code(g1);
+
+            InterCode l3 = myAlloc(sizeof(InterCode_t));
+            l3->kind = LABELSET;
+            l3->u.label.op = label3;
+            append_code(l3);
+        }
+
+        return;
+    }
+
+    if(root->num_child == 7) {
+        // Stmt -> IF LP Exp RP Stmt ELSE Stmt
+        assert(root->Tree_child[2] != NULL);
+        assert(root->Tree_child[4] != NULL);
+        assert(root->Tree_child[6] != NULL);
+
+        Operand label1 = get_label();
+        Operand label2 = get_label();
+        Operand label3 = get_label();
+
+        ir_Cond(root->Tree_child[2], label1, label2); // TODO
+
+        InterCode l1 = myAlloc(sizeof(InterCode_t));
+        l1->kind = LABELSET;
+        l1->u.label.op = label1;
+        append_code(l1);
+
+        ir_Stmt(root->Tree_child[4], retType);
+
+        InterCode g1 = myAlloc(sizeof(InterCode_t));
+        g1->kind = GOTO;
+        g1->u.label.op = label3;
+        append_code(g1);
+
+
+        InterCode l2 = myAlloc(sizeof(InterCode_t));
+        l2->kind = LABELSET;
+        l2->u.label.op = label2;
+        append_code(l2);
+
+        ir_Stmt(root->Tree_child[6], retType);
+
+        InterCode l3 = myAlloc(sizeof(InterCode_t));
+        l3->kind = LABELSET;
+        l3->u.label.op = label3;
+        append_code(l3);
+
+        return;
+    }
+
+    // Should't reach Here!!!
+    assert(0);
+
+}

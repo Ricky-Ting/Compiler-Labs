@@ -74,7 +74,7 @@ FieldList ir_ParamDec(TreeNode_t* root);
 /* Statements */
 void ir_CompSt(TreeNode_t* root, Type retType);
 void ir_StmtList(TreeNode_t* root, Type retType);
-
+void ir_Stmt(TreeNode_t* root, Type retType);
 
 #endif
 
