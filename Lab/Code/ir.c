@@ -495,3 +495,24 @@ FieldList ir_VarList(TreeNode_t* root) {
     return field;
 }
 
+FieldList ir_ParamDec(TreeNode_t* root) {
+    helper(root);
+    /*
+    * ParamDec -> Specifier VarDec 
+    */
+
+    assert(root->num_child == 2);
+    assert(root->Tree_child[0] != NULL && root->Tree_child[1] != NULL);
+
+    Type type = ir_Specifier(root->Tree_child[0]);
+    Symbol sym = ir_VarDec(root->Tree_child[1], type, 0, 2);
+
+    FieldList field = myAlloc(sizeof(FieldList_t));
+    strncpy(field->name, sym->name, 55);
+    field->type = sym->type;
+    field->tail = NULL;
+    
+    return field;
+}
+
+

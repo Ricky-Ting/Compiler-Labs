@@ -69,7 +69,7 @@ char* ir_Tag(TreeNode_t* root);
 Symbol ir_VarDec(TreeNode_t* root, Type baseType, int size, int inStruct);
 Symbol ir_FunDec(TreeNode_t* root, Type retType, Symbol sym);
 FieldList ir_VarList(TreeNode_t* root);
-
+FieldList ir_ParamDec(TreeNode_t* root);
 
 
 #endif
