@@ -317,3 +317,57 @@ Type ir_Specifier(TreeNode_t *root) {
         assert(0);
     }
 }
+
+Type ir_StructSpecifier(TreeNode_t* root) {
+    helper(root);
+    /* 
+    * StructSpecifier -> STRUCT OptTag LC DefList RC
+    * StructSpecifier -> STRUCT Tag
+    */
+    assert(root->num_child==2 || root->num_child==5);
+    if(root->num_child == 2) {
+        assert(root->Tree_child[1] != NULL);     
+        char *name = ir_Tag(root->Tree_child[1]);
+        Symbol sym = findType(name);
+        if(sym == NULL) {
+            // Shouldn't reach here !!!
+            assert(0);
+        }
+        return sym->type;        
+    } else {
+        stack_push();
+        Type type = myAlloc(sizeof(Type_t));
+        type->kind = STRUCTURE;
+        type->u.structure = NULL;
+
+        Symbol sym = myAlloc(sizeof(Symbol_t));
+        sym->type = type;
+
+        if(root->Tree_child[1] == NULL) {
+            // 匿名结构体指定一个名字
+            strncpy(sym->name, get_name(), 55);
+        } else {
+            strncpy(sym->name, ir_OptTag(root->Tree_child[1]), 55);
+        }
+
+        if(root->Tree_child[3] != NULL) {
+            type->u.structure = ir_DefList(root->Tree_child[3], 1, 0);
+            
+            FieldList cur = type->u.structure;
+            assert(cur != NULL); //TODO
+            while(cur->tail != NULL)
+                cur = cur->tail;
+            type->u.structure->totalsize = cur->offset + cur->size;
+        }
+
+        if(findSymbol(sym->name) != NULL || findType(sym->name) != NULL) {
+            // shouldn't reach here!!!
+            assert(0);
+        } else {
+            insertType(sym);
+            stack_pop();
+            return type;
+        }
+    }
+}
+

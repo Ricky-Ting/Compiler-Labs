@@ -61,6 +61,7 @@ void ir_ExtDecList(TreeNode_t *root, Type baseType);
 
 /* Specifiers */
 Type ir_Specifier(TreeNode_t *root);
+Type ir_StructSpecifier(TreeNode_t* root);
 
 
 

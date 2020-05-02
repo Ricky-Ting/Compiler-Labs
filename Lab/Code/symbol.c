@@ -112,6 +112,8 @@ void insertSymbol(Symbol sym) {
 
 /* 插入类型表 */
 void insertType(Symbol sym) {
+
+    sym->prev = sym->next = sym->area_prev = sym->area_next = NULL;
     // 确定在哪个slot
     int slot = hash_pjw(sym->name);
     
