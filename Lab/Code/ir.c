@@ -380,3 +380,9 @@ char* ir_OptTag(TreeNode_t* root) {
     assert(root->num_child == 1);
     return root->Tree_child[0]->Tree_val;
 }
+
+char* ir_Tag(TreeNode_t* root) {
+    helper(root);
+    // Tag -> ID
+    return root->Tree_child[0]->Tree_val;
+}

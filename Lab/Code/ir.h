@@ -63,7 +63,7 @@ void ir_ExtDecList(TreeNode_t *root, Type baseType);
 Type ir_Specifier(TreeNode_t *root);
 Type ir_StructSpecifier(TreeNode_t* root);
 char* ir_OptTag(TreeNode_t* root);
-
+char* ir_Tag(TreeNode_t* root);
 
 
 
