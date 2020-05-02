@@ -71,6 +71,8 @@ Symbol ir_FunDec(TreeNode_t* root, Type retType, Symbol sym);
 FieldList ir_VarList(TreeNode_t* root);
 FieldList ir_ParamDec(TreeNode_t* root);
 
+/* Statements */
+void ir_CompSt(TreeNode_t* root, Type retType);
 
 #endif
 

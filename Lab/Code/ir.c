@@ -515,4 +515,21 @@ FieldList ir_ParamDec(TreeNode_t* root) {
     return field;
 }
 
+/* Statements */
 
+void ir_CompSt(TreeNode_t* root, Type retType) {
+    helper(root);
+    /*
+    * CompSt -> LC DefList StmtList RC
+    */
+
+    assert(root->num_child == 4);
+    if(root->Tree_child[1] != NULL) {
+        ir_DefList(root->Tree_child[1], 0, 0);
+    }
+
+    if(root->Tree_child[2] != NULL) {
+        ir_StmtList(root->Tree_child[2], retType);
+    }
+    return;
+}
