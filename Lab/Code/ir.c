@@ -438,3 +438,33 @@ Symbol ir_VarDec(TreeNode_t* root, Type baseType, int size, int inStruct) {
         return ir_VarDec(root->Tree_child[0], newType, size+1, inStruct);
     }
 }
+
+Symbol ir_FunDec(TreeNode_t* root, Type retType, Symbol sym) {
+    helper(root);
+    /* 
+    * FunDec -> ID LP VarList RP
+    * FunDec -> ID LP RP
+    */
+
+    assert(root->num_child == 3 || root->num_child == 4);
+
+    if(root->num_child == 4) {
+        assert(root->Tree_child[2] != NULL);
+        sym->type->u.func.params = ir_VarList(root->Tree_child[2]);
+
+        FieldList field = sym->type->u.func.params;
+
+        //TODO
+        /*
+        while(field != NULL) {
+            if(field->type->kind != BASIC) {
+                Symbol fieldsym = findSymbol(field->name);
+                fieldsym->mode = ADDRESS;
+            }
+            field = field->tail;
+        }
+        */
+
+    }
+    return sym;
+}
