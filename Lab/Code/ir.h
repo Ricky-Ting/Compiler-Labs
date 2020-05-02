@@ -54,7 +54,7 @@ struct expType_ {
 };
 
 /* High-level Definitions */
-
+void ir_Program(TreeNode_t* root, FILE* ir_file);
 
 
 

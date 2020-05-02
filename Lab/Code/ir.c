@@ -168,6 +168,22 @@ void ir_init() {
     return;
 }
 
+/* High-level Definitions */
+void ir_Program(TreeNode_t* root, FILE* ir_file) {
+    ir_init();
+    helper(root);
+    /*
+    * Program -> ExtDefList
+    */
+    if(root == NULL)
+        return;
+    if(root->num_child == 0)
+        return;
+    if(root->Tree_child[0] != NULL)
+        ir_ExtDefList(root->Tree_child[0]);
 
+    printIR(head, tail, ir_file);
+    return;
+}
 
 
