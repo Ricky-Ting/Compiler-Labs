@@ -468,3 +468,30 @@ Symbol ir_FunDec(TreeNode_t* root, Type retType, Symbol sym) {
     }
     return sym;
 }
+
+
+FieldList ir_VarList(TreeNode_t* root) {
+    helper(root);
+    /*
+    * VarList -> ParamDec COMMA VarList
+    * VarList -> ParamDec
+    */
+
+    assert(root->num_child == 1 || root->num_child == 3);
+
+    assert(root->Tree_child[0] != NULL);
+
+    FieldList field = ir_ParamDec(root->Tree_child[0]);
+
+    //TODO 可以优化
+    if(root->num_child == 3) {
+        assert(root->Tree_child[2] != NULL);
+        FieldList next_field = ir_VarList(root->Tree_child[2]);
+        FieldList cur = field;
+        while(cur->tail != NULL)
+            cur = cur->tail;
+        cur->tail = next_field;
+    }    
+    return field;
+}
+
