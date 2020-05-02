@@ -820,6 +820,42 @@ FieldList ir_Dec(TreeNode_t* root, Type baseType, int inStruct, int offset) {
     }
 }
 
+exp_Type_t ir_Exp(TreeNode_t* root, int needop) {
+    helper(root);
+    /*
+    * Exp -> Exp ASSIGNOP Exp
+    * Exp -> Exp AND Exp 
+    * Exp -> Exp OR Exp 
+    * Exp -> Exp RELOP Exp 
+    * Exp -> Exp PLUS Exp
+    * Exp -> Exp MINUS Exp
+    * Exp -> Exp STAR Exp 
+    * Exp -> Exp DIV Exp 
+    * Exp -> LP Exp RP
+    * 
+    * Exp -> MINUS Exp 
+    * Exp -> NOT Exp 
+    * 
+    * Exp -> ID LP Args RP
+    * Exp -> ID LP RP 
+    * Exp -> Exp LB Exp RB
+    * Exp -> Exp DOT ID
+    * Exp -> ID
+    * Exp -> INT
+    * Exp -> FLOAT
+    */
+
+    if(root->num_child == 1)
+        return ir_Exp1(root, needop);
+    if(root->num_child == 2)
+        return ir_Exp2(root, needop);
+    if(root->num_child == 3)
+        return ir_Exp3(root, needop);
+    if(root->num_child == 4)
+        return ir_Exp4(root, needop);
+    assert(0);
+}
+
 
 
 
