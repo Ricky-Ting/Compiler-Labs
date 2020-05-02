@@ -371,3 +371,12 @@ Type ir_StructSpecifier(TreeNode_t* root) {
     }
 }
 
+char* ir_OptTag(TreeNode_t* root) {
+    helper(root);
+    /*
+        OptTag -> ID
+        OptTag -> e
+    */
+    assert(root->num_child == 1);
+    return root->Tree_child[0]->Tree_val;
+}
