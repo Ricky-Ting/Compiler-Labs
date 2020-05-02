@@ -775,3 +775,52 @@ FieldList ir_DecList(TreeNode_t* root, Type baseType, int inStruct, int offset) 
 
     }
 }
+
+FieldList ir_Dec(TreeNode_t* root, Type baseType, int inStruct, int offset) {
+    helper(root);
+    /*
+    * Dec -> VarDec
+    * Dec -> VarDec ASSIGNOP Exp
+    */
+
+    assert(root->num_child == 1 || root->num_child == 3);
+    
+    assert(root->Tree_child[0] != NULL);
+    Symbol sym = ir_VarDec(root->Tree_child[0], baseType, 0, inStruct);
+
+    if(inStruct == 1) {
+        FieldList field = myAlloc(sizeof(FieldList_t));
+        field->tail = NULL;
+        strncpy(field->name, sym->name, 55);
+        field->type = sym->type;
+        field->offset = offset;
+        field->size = get_size(sym->type);
+
+        if(root->num_child == 3) {
+            // 结构体里面不能赋值
+            assert(0);
+        }
+        return field;
+    } else {
+        
+        if(root->num_child == 3) {
+            // TODO
+            assert(sym->type->kind == BASIC) 
+
+            InterCode code = myAlloc(sizeof(InterCode_t));
+        
+            Operand t1 = call_Exp(root->Tree_child[2], 1).op;
+            //TODO a = *b;的情况
+            code->kind = ASSIGN;
+            code->u.assign.left = get_op(sym->var_no);
+            code->u.assign.right = t1;
+            append_code(code);
+        }
+        return NULL;
+    }
+}
+
+
+
+
+
