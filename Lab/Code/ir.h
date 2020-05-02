@@ -49,8 +49,8 @@ struct InterCode_ {
 struct InterCodes_ { InterCode code; struct InterCodes_ *prev, *next; };
 
 struct expType_ {
-    Operand op;
     Type type;
+    Operand op;
 };
 
 /* High-level Definitions */
@@ -85,6 +85,7 @@ FieldList ir_Dec(TreeNode_t* root, Type baseType, int inStruct, int offset);
 /* Expressions */
 expType_t ir_Exp(TreeNode_t* root, int needop);
 expType_t ir_Exp1(TreeNode_t* root, int needop);
+expType_t ir_Exp2(TreeNode_t* root, int needop);
 
 #endif
 

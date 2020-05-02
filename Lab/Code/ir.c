@@ -914,6 +914,78 @@ expType_t ir_Exp1(TreeNode_t* root, int needop) {
 }
 
 
+expType_t ir_Exp2(TreeNode_t* root, int needop) {
+    assert(root->Tree_child[0] != NULL);
+    assert(root->Tree_child[1] != NULL);
+
+    if(IS_EQUAL(root->Tree_child[0]->Tree_token, "MINUS")) {
+        expType_t ret = expType_t{&TYPE_INT, NULL};
+        Operand t1 = call_Exp(root->Tree_child[1], 1).op;
+        // 常量优化待考虑
+
+        if(needop == 0) {
+            return ret;
+        }
+
+        if(t1->kind == CONSTANT) {
+            t1->u.value = -t1->u.value;
+            ret.op = t1;
+            return ret;
+        }
+
+        Operand res = get_temp();
+
+        InterCode code = myAlloc(sizeof(InterCode_t));
+        code->kind = SUB;
+        code->u.binop.op1 = &OP_ZERO;
+        code->u.binop.op2 = t1;
+        code->u.binop.result = res;
+        append_code(code);
+
+        ret.op = res;
+        return ret;
+    }
+
+    if(IS_EQUAL(root->Tree_child[0]->Tree_token, "NOT")) {
+        expType_t ret = expType_t{&TYPE_INT, NULL};
+        // 优化待做
+
+        label1 = newlabel();
+        label2 = newlabel();
+        
+        Operand place = get_temp();
+
+        InterCode code0 = myAlloc(sizeof(InterCode_t));
+        code0->kind = ASSIGN;
+        code0->u.assign.left = place;
+        code0->u.assign.right = &OP_ZERO;
+        append_code(code0);
+
+        ir_Cond(root, label1, label2);
+            
+        InterCode l1 = myAlloc(sizeof(InterCode_t));
+        l1->kind = LABELSET;
+        l1->u.label.op = label1;
+        append_code(l1);
+
+        InterCode code2 = myAlloc(sizeof(InterCode_t));
+        code2->kind = ASSIGN;
+        code2->u.assign.left = place;
+        code2->u.assign.right = &OP_ONE;
+        append_code(code2);
+
+        InterCode l2 = myAlloc(sizeof(InterCode_t));
+        l2->kind = LABELSET;
+        l2->u.label.op = label2;
+        append_code(l2);
+
+        return ret;
+    }
+    assert(0);
+}
+
+
+
 
 
 
