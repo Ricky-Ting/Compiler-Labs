@@ -24,6 +24,10 @@ void helper(TreeNode_t* root) {
     //fprintf(stderr, "In %s\n", root->Tree_token);
 }
 
+int min(int a, int b) {
+    return (a<b)?a:b;
+}
+
 char* get_name() {
     if(random_name[pos] == 'Z') {
         pos++;
@@ -872,8 +876,115 @@ Type ir_Exp(TreeNode_t* root, Operand place) {
             if(IS_EQUAL(root->Tree_child[1]->Tree_token, "ASSIGNOP")) {
                 // TODO
                 Operand t1 = get_temp();
+                Type right_type = ir_Exp(root->Tree_child[2], t1);
+
+                if(right_type == NULL || right_type->kind == BASIC) {
+                    // 非数组赋值
+                    if(t1->mode == ADDRESS) {
+                        Operand ret = get_temp();
+                        InterCode code = myAlloc(sizeof(InterCode_t));
+                        code->kind = DEREF;
+                        code->u.assign.left = ret;
+                        code->u.assign.right = t1;
+                        append_code(code);
+                        t1 = ret;
+                    }
+
+                    // 非数组赋值
+                    if(root->Tree_child[0]->num_child == 1) {
+                        // Exp1->ID;
+                        TreeNode_t* id_node = root->Tree_child[0]->Tree_child[0];
+                        Symbol sym = findSymbol(id_node->Tree_val);
+
+                        Operand left = myAlloc(sizeof(Operand_t));
+                        left->kind = VARIABLE;
+                        left->mode = VALUE;
+                        left->u.var_no = sym->var_no;
+
+                        InterCode code = myAlloc(sizeof(InterCode_t));
+                        code->kind = ASSIGN;
+                        code->u.assign.left = left;
+                        code->u.assign.right = t1;
+                        append_code(code);
+
+                        // id = t1;
+                    } else {
+                        // Exp1 -> Exp.Exp 或 Exp1 -> Exp[Exp]
+                        Operand left = get_temp();
+                        ir_Exp(root->Tree_child[0], left);
+
+                        // *p = t1;
+                        InterCode code = myAlloc(sizeof(InterCode_t));
+                        code->kind = REF_ASSIGN;
+                        code->u.assign.left = left;
+                        code->u.assign.right = t1;
+                        append_code(code);
+                    }
+                    
+                    if(place != NULL) {
+                        InterCode code = myAlloc(sizeof(InterCode_t));
+                        code->kind = ASSIGN;
+                        code->u.assign.left = place;
+                        code->u.assign.right = t1;
+                        append_code(code);
+                    }
+                    
+                } else {
+                    Operand t2 = get_temp();
+                    Type left_type = ir_Exp(root->Tree_child[0], t2);
+                    int sz = min(left_type->u.array.totalsize, right_type->u.array.totalsize);
+
+                    Operand t4 = get_temp();
+                    InterCode code = myAlloc(sizeof(InterCode_t));
+                    code->kind = ASSIGN;
+                    code->u.assign.left = t4;
+                    code->u.assign.right = t1;
+                    append_code(code);
+
+                    for(int i=0; i<sz/4; ++i) {
+
+                        // t3 = *t4;
+                        Operand t3 = get_temp();
+                        InterCode code1 = myAlloc(sizeof(InterCode_t));
+                        code1->kind = DEREF;
+                        code1->u.assign.left = t3;
+                        code1->u.assign.right = t4;
+                        append_code(code1);
+
+                        // *t2 = t3;
+                        InterCode code2 = myAlloc(sizeof(InterCode_t));
+                        code2->kind = REF_ASSIGN; 
+                        code2->u.assign.left = t2;
+                        code2->u.assign.right = t3;
+                        append_code(code2);
+
+                        InterCode code3 = myAlloc(sizeof(InterCode_t));
+                        code3->kind = ADD; 
+                        code3->u.binop.result = t4;
+                        code3->u.binop.op1 = t4;
+                        code3->u.binop.op2 = get_constant(4);
+                        append_code(code3);
+
+                        InterCode code4 = myAlloc(sizeof(InterCode_t));
+                        code4->kind = ADD; 
+                        code4->u.binop.result = t2;
+                        code4->u.binop.op1 = t2;
+                        code4->u.binop.op2 = get_constant(4);
+                        append_code(code4);
+                    }
+                    if(place != NULL) {
+                        InterCode code = myAlloc(sizeof(InterCode_t));
+                        code->kind = ASSIGN;
+                        code->u.assign.left = place;
+                        code->u.assign.right = t1;
+                        append_code(code);
+                    }
+                }
+
+                return right_type;
+                /*
+                Operand t1 = get_temp();
                 t1 = call_Exp(root->Tree_child[2], t1);
-                
                 if(root->Tree_child[0]->num_child == 1) {
                     // Exp1->ID;
                     TreeNode_t* id_node = root->Tree_child[0]->Tree_child[0];
@@ -913,6 +1024,7 @@ Type ir_Exp(TreeNode_t* root, Operand place) {
                 }
 
                 return NULL;
+                */
 
             } else {
                 if(IS_EQUAL(root->Tree_child[1]->Tree_token, "AND") 
