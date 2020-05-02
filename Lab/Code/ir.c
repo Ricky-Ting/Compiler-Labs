@@ -204,3 +204,75 @@ void ir_ExtDefList(TreeNode_t *root) {
     }
 }
 
+void ir_ExtDef(TreeNode_t *root) {
+    helper(root);
+    /*
+    * ExtDef -> Specifier ExtDecList SEMI 
+    * ExtDef -> Specifier SEMI
+    * ExtDef -> Specifier FunDec CompSt
+    * ExtDef -> Specifier FunDec SEMI
+    */
+
+    assert(root->num_child == 2 || root->num_child == 3);
+    
+    /* Get Specifier */
+    assert(root->Tree_child[0] != NULL);
+    Type type = ir_Specifier(root->Tree_child[0]);
+
+    /* ExtDecList SEMI FunDec 都不会产生空 */
+    assert(root->Tree_child[1] != NULL);
+    if(IS_EQUAL(root->Tree_child[1]->Tree_token, "SEMI")) {
+        // ExtDef -> Specifier SEMI
+        return;
+    } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "ExtDecList")) {
+        // ExtDef -> Specifier ExtDecList SEMI
+        ir_ExtDecList(root->Tree_child[1], type);
+        return;
+    } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "FunDec")) {
+        // ExtDef -> Specifier FunDec Compst
+    
+        // 遇到函数 压栈
+        Type functype = myAlloc(sizeof(Type_t));
+        functype->kind = FUNC;
+        functype->u.func.ret = type;
+        functype->u.func.params = NULL; // 暂时为NULL
+        Symbol sym = myAlloc(sizeof(Symbol_t));
+        // 获取函数名
+        snprintf(sym->name, 55, "%s", root->Tree_child[1]->Tree_child[0]->Tree_val);
+        sym->type = functype;
+
+        // 创建符号
+        assert(root->Tree_child[2] != NULL);
+
+        if(findSymbol(sym->name) == NULL) {
+            insertSymbol(sym);
+            InterCode code = myAlloc(sizeof(InterCode_t));
+            code->kind = FUNCTION;
+            Operand op = myAlloc(sizeof(Operand_t));
+            op->kind = FUNCT;
+            if(IS_EQUAL(sym->name, "main")) {
+                op->u.var_no = sym->var_no = 0;
+            } else {
+                op->u.var_no = sym->var_no;
+            }
+            code->u.unary.op = op;
+            append_code(code);
+        } else {
+            // 只会出现一次函数定义
+            // shouldn't reach here!!!
+            assert(0);
+        }
+
+        if(IS_EQUAL(root->Tree_child[2]->Tree_token, "CompSt")) {
+            stack_push();
+            ir_FunDec(root->Tree_child[1], type, sym);
+            ir_CompSt(root->Tree_child[2], type);
+            stack_pop();
+        } else {
+            // Shouldn't reach here!!!
+            assert(0);
+        }
+        return;
+    }
+}
+
