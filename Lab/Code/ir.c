@@ -820,7 +820,7 @@ FieldList ir_Dec(TreeNode_t* root, Type baseType, int inStruct, int offset) {
     }
 }
 
-exp_Type_t ir_Exp(TreeNode_t* root, int needop) {
+expType_t ir_Exp(TreeNode_t* root, int needop) {
     helper(root);
     /*
     * Exp -> Exp ASSIGNOP Exp
@@ -853,8 +853,67 @@ exp_Type_t ir_Exp(TreeNode_t* root, int needop) {
         return ir_Exp3(root, needop);
     if(root->num_child == 4)
         return ir_Exp4(root, needop);
+    
+    // Shound't reach here!!!
+    //printf("%s\n", root->Tree_token);
+    for(int i=0; i<root->num_child; ++i) {
+        printf("%s ", root->Tree_child[i]->Tree_token);
+    }
     assert(0);
 }
+
+expType_t ir_Exp1(TreeNode_t* root, int needop) {
+    // Exp -> ID, Exp-> INT, Exp-> FLOAT
+    assert(root->num_child == 1);
+    assert(root->Tree_child[0] != NULL);
+
+    if(IS_EQUAL(root->Tree_child[0]->Tree_token, "ID")) {
+        // Exp -> ID
+        // 只可能是BASIC ARRAY 或者 STRUCTURE
+        expType_t ret;
+
+        char name[55];
+        strncpy(name, ir_ID(root->Tree_child[0]), 55);
+        Symbol sym = findSymbol(name);
+        assert(sym != NULL);
+        ret.type = sym->type;
+        ret.op = NULL;
+
+        if(needop == 0) 
+            return ret;
+
+        if(sym->type->kind == BASIC) {
+            Operand op = get_op(sym->var_no);
+            ret.op = op;
+        } else if(sym->type->kind == ARRAY || sym->type->kind == STRUCTURE){
+            Operand op = get_op(sym->var_no);
+            op->mode = ADDRESS;
+            op->print_mode = REF;
+
+            ret.op = op;
+        } else {
+            assert(0);
+        }
+        return ret;
+    } 
+
+    if(IS_EQUAL(root->Tree_child[0]->Tree_token, "INT")){
+        // Exp -> INT;
+        expType_t ret;
+        Operand op = get_constant(root->Tree_child[0]->val_UINT);
+        ret.op = op;
+        ret.type = &TYPE_INT;
+        return ret;
+    } 
+
+    if(IS_EQUAL(root->Tree_child[0]->Tree_token, "FLOAT")) {
+        // Exp -> FLOAT
+        assert(0);
+    }
+    assert(0);
+}
+
+
 
 
 
