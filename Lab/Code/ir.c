@@ -187,3 +187,20 @@ void ir_Program(TreeNode_t* root, FILE* ir_file) {
 }
 
 
+void ir_ExtDefList(TreeNode_t *root) {
+    helper(root);
+    /*
+    * ExtDefList -> ExtDef ExtDefList
+    * ExtDefList -> e (not reach)
+    */
+
+    assert(root->num_child == 2);
+    
+    assert(root->Tree_child[0] != NULL);
+    ir_ExtDef(root->Tree_child[0]);
+
+    if(root->Tree_child[1] != NULL) {
+        ir_ExtDefList(root->Tree_child[1]);
+    }
+}
+
