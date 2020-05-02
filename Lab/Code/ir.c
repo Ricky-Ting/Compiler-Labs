@@ -915,10 +915,12 @@ expType_t ir_Exp1(TreeNode_t* root, int needop) {
 
 
 expType_t ir_Exp2(TreeNode_t* root, int needop) {
+    assert(root->num_child == 2);
     assert(root->Tree_child[0] != NULL);
     assert(root->Tree_child[1] != NULL);
 
     if(IS_EQUAL(root->Tree_child[0]->Tree_token, "MINUS")) {
+        // Exp -> MINUS Exp
         expType_t ret = expType_t{&TYPE_INT, NULL};
         Operand t1 = call_Exp(root->Tree_child[1], 1).op;
         // 常量优化待考虑
@@ -947,6 +949,7 @@ expType_t ir_Exp2(TreeNode_t* root, int needop) {
     }
 
     if(IS_EQUAL(root->Tree_child[0]->Tree_token, "NOT")) {
+        // Exp -> NOT Exp
         expType_t ret = expType_t{&TYPE_INT, NULL};
         // 优化待做
 
@@ -979,6 +982,89 @@ expType_t ir_Exp2(TreeNode_t* root, int needop) {
         l2->u.label.op = label2;
         append_code(l2);
 
+        return ret;
+    }
+    assert(0);
+}
+
+expType_t ir_Exp4(TreeNode_t* root, int needop) {
+    assert(root->num_child == 4);
+    assert(root->Tree_child[0] != NULL);
+    assert(root->Tree_child[1] != NULL);
+    assert(root->Tree_child[2] != NULL);
+    assert(root->Tree_child[3] != NULL);
+
+    if(IS_EQUAL(root->Tree_child[0]->Tree_token, "ID")) {
+        // Exp -> ID LP Args RP
+        expType_t ret = {&TYPE_INT, NULL};
+
+        char func_name[55];
+        strncpy(func_name, ir_ID(root->Tree_child[0]), 55);
+        Symbol sym = findSymbol(func_name);
+
+        assert(sym != NULL);
+
+        if(IS_EQUAL(func_name, "write")) {
+            Operand t1 = call_Exp(root->Tree_child[2]->Tree_child[0], 1).op;
+
+            InterCode code = myAlloc(sizeof(InterCode_t));
+            code->kind = WRITE;
+            code->u.unary.op = t1;
+            append_code(code);
+            ret.op = &OP_ONE;
+        } else {
+            ir_Args(root->Tree_child[2]);
+
+            Operand place = get_temp();
+
+            InterCode code = myAlloc(sizeof(InterCode_t));
+            code->kind = CALL;
+            code->u.assign.left = place;
+
+            Operand func = myAlloc(sizeof(Operand_t));
+            func->kind = FUNCT;
+            func->u.var_no = sym->var_no;
+            code->u.assign.right = func;
+            append_code(code);
+
+            ret.op = place;
+        }
+
+        return ret;
+    }
+
+    if(IS_EQUAL(root->Tree_child[0]->Tree_token, "Exp")) {
+        // Exp -> Exp LB Exp RB
+        // 不需要的情况 待优化
+        expType_t ret = {&TYPE_INT, NULL};
+
+        expType_t prev = ir_Exp(root->Tree_child[0], 1);
+        Type type = prev.type;
+        Operand place = prev.place;
+        assert(type != NULL && type->kind == ARRAY);
+
+        Operand index = call_Exp(root->Tree_child[2], 1).op;
+        if(index->kind == CONSTANT) {
+            index->u.value *= type->u.array.totalsize / type->u.array.size;
+        } else {
+            InterCode code = myAlloc(sizeof(InterCode_t));
+            code->kind = MUL;
+            code->u.binop.result = index;
+            code->u.binop.op1 = index;
+            code->u.binop.op2 = get_constant(type->u.array.totalsize / type->u.array.size);
+            append_code(code);
+        }
+        Operand offset = index;
+
+        InterCode code2 = myAlloc(sizeof(InterCode_t));
+        code2->kind = ADD;
+        code2->u.binop.result = place;
+        code2->u.binop.op1 = place;
+        code2->u.binop.op2 = offset;
+        append_code(code2);
+
+        ret.type = type->u.array.elem;
+        ret.op = place;
         return ret;
     }
     assert(0);

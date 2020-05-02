@@ -86,6 +86,7 @@ FieldList ir_Dec(TreeNode_t* root, Type baseType, int inStruct, int offset);
 expType_t ir_Exp(TreeNode_t* root, int needop);
 expType_t ir_Exp1(TreeNode_t* root, int needop);
 expType_t ir_Exp2(TreeNode_t* root, int needop);
+expType_t ir_Exp4(TreeNode_t* root, int needop);
 
 #endif
 
