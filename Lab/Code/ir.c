@@ -723,3 +723,19 @@ FieldList ir_DefList(TreeNode_t* root, int inStruct, int offset) {
         return NULL;
     }
 }
+
+FieldList ir_Def(TreeNode_t* root, int inStruct, int offset) {
+    helper(root);
+    /*
+    * Def -> Specifier DecList SEMI
+    */
+
+    assert(root->num_child == 3);
+   
+    assert(root->Tree_child[0] != NULL);
+    Type type = ir_Specifier(root->Tree_child[0]);
+
+    assert(root->Tree_child[1] != NULL);
+
+    return ir_DecList(root->Tree_child[1], type, inStruct, offset);
+}
