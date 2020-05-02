@@ -35,7 +35,7 @@ struct Operand_ {
 
 struct InterCode_ {
     enum { LABELSET, FUNCTION, ASSIGN, ADD, SUB, MUL, DIV, ADDR, DEREF, REF_ASSIGN, 
-            GOTO, CONDJMP, RETURN, DEC, ARG, CALL, PARAM, READ, WRITE  } kind;
+            GOTO, CONDJMP, RETURN, DEC, ARG, CALL, PARAM, READ, WRITE, ARRAY_ASSIGN  } kind;
     union {
         struct { Operand right, left; } assign;
         struct { Operand result, op1, op2; } binop;

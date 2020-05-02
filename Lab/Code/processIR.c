@@ -203,6 +203,10 @@ void print_WRITE(InterCode code) {
     fprintf(out, "\n");
 }
 
+void print_ARRAY_ASSIGN(InterCode code) {
+    fprintf(out, "*t%d := *t%d\n", code->u.assign.left->u.var_no, code->u.assign.right->u.var_no);
+}
+
 void printIR(InterCodes head, InterCodes tail, FILE* file_ir) {
     InterCodes cur = head;
     out = file_ir;
@@ -259,6 +263,9 @@ void printIR(InterCodes head, InterCodes tail, FILE* file_ir) {
             break;
         case WRITE:
             print_WRITE(cur->code);
+            break;
+        case ARRAY_ASSIGN:
+            print_ARRAY_ASSIGN(cur->code);
             break;
         default:
             assert(0);

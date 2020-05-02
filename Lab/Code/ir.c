@@ -1151,7 +1151,49 @@ expType_t ir_Exp3(TreeNode_t* root, int needop) {
                 append_code(code);
                 return right_ret;
             } else {
-                // 数组赋值
+                expType_t left_ret = call_Exp(root->Tree_child[0], 1);
+                assert(left_ret.type->kind == ARRAY);
+                assert(right_ret.type->kind == ARRAY);
+
+                Operand op1 = left_ret.op;
+                Operand op2 = right_ret.op;
+
+                assert(op1->kind == TEMP);
+                assert(op2->kind == TEMP);
+
+                Operand op = get_temp();
+                op->mode = ADDRESS;
+                InterCode code = myAlloc(sizeof(InterCode_t));
+                code->kind = ASSIGN;
+                code->u.assign.left = op;
+                code->u.assign.right = op1;
+                append_code(code);
+
+                int sz = min(left_ret.type->u.array.totalsize, right_ret.type->u.array.totalsize);
+
+                for(int i=0; i<sz/4; ++i) {
+                    InterCode code1 = myAlloc(sizeof(InterCode_t));
+                    code1->kind = ARRAY_ASSIGN;
+                    code1->u.assign.left = op1;
+                    code1->u.assign.right = op2;
+                    append_code(code1);
+
+                    InterCode code2 = myAlloc(sizeof(InterCode_t));
+                    code2->kind = ADD; 
+                    code2->u.binop.result = op1;
+                    code2->u.binop.op1 = op1;
+                    code2->u.binop.op2 = get_constant(4);
+                    append_code(code2);
+
+                    InterCode code3 = myAlloc(sizeof(InterCode_t));
+                    code3->kind = ADD; 
+                    code3->u.binop.result = op2;
+                    code3->u.binop.op1 = op2;
+                    code3->u.binop.op2 = get_constant(4);
+                    append_code(code3);
+                }
+                left_ret.op = op;
+                return left_ret;
             }
         }
 
