@@ -88,6 +88,7 @@ expType_t ir_Exp1(TreeNode_t* root, int needop);
 expType_t ir_Exp2(TreeNode_t* root, int needop);
 expType_t ir_Exp4(TreeNode_t* root, int needop);
 expType_t ir_Exp3(TreeNode_t* root, int needop);
+void ir_Args(TreeNode_t* root);
 
 #endif
 

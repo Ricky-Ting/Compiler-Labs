@@ -1254,7 +1254,29 @@ expType_t ir_Exp3(TreeNode_t* root, int needop) {
 }
 
 
+void ir_Args(TreeNode_t* root) {
+    helper(root);
+    /*
+    * Args -> Exp COMMA Args
+    * Args -> Exp
+    */
 
+    assert(root->num_child == 1 || root->num_child == 3);
+    assert(root->Tree_child[0] != NULL);
+
+    if(root->num_child == 3) {
+        assert(root->Tree_child[2] != NULL);
+        ir_Args(root->Tree_child[2]);
+    }
+
+    Operand t1 = call_Exp(root->Tree_child[0], 1).op;
+
+    InterCode code = myAlloc(sizeof(InterCode_t));
+    code->kind = ARG;
+    code->u.unary.op = t1;
+    append_code(code);
+    return;
+}
 
 
 
