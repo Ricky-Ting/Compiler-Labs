@@ -109,6 +109,23 @@ int get_size(Type type) {
     }
 }
 
+expType_t call_Exp(TreeNode_t* root, int needop) {
+    expType_t ret = ir_Exp(root, 1);
+    if(ret.op->mode == ADDRESS && ret.type->kind == BASIC) {
+        Operand newop = myAlloc(sizeof(Operand_t));
+
+        assert(ret.op->kind == TEMP);
+        assert(ret.op->print_mode == NORMAL);
+        newop->kind = TEMP;
+        newop->mode = VALUE;
+        newop->print_mode = DEF;
+        newop->u.var_no = ret.op->u.var_no;
+
+        ret.op = newop;
+    }
+    return ret;
+}
+
 
 void add_read_write() {
     Symbol readfunc = myAlloc(sizeof(Symbol_t));

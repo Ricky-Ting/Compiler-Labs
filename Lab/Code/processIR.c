@@ -7,12 +7,35 @@
 
 FILE* out = NULL;
 
+/*
 void print_op(Operand op) {
     assert(op != NULL);
     if(op->kind == VARIABLE) {
         fprintf(out, "v%d", op->u.var_no);
     } else if(op->kind == TEMP) {
         fprintf(out, "t%d", op->u.var_no);
+    } else if(op->kind == CONSTANT) {
+        fprintf(out, "#%d", op->u.value);
+    } else {
+        assert(0);
+    }
+}
+*/
+
+void print_op(Operand op) {
+    assert(op != NULL);
+    if(op->kind == VARIABLE) {
+        if(op->print_mode == NORMAL) 
+            fprintf(out, "v%d", op->u.var_no);
+        else if(op->print_mode ==  REF) 
+            fprintf(out, "&v%d", op->u.var_no);
+        else 
+            assert(0);
+    } else if(op->kind == TEMP) {
+        if(op->print_mode == NORMAL) 
+            fprintf(out, "t%d", op->u.var_no);
+        else if(op->print_mode == DEF) 
+            fprintf(out, "*t%d", op->u.var_no);
     } else if(op->kind == CONSTANT) {
         fprintf(out, "#%d", op->u.value);
     } else {
@@ -34,6 +57,11 @@ void print_FUNCTION(InterCode code) {
 }
 
 void print_ASSIGN(InterCode code) {
+    // TODO
+    if(code->u.assign.left->print_mode == DEF) {
+        assert(0);
+    }
+
     print_op(code->u.assign.left);
     fprintf(out, " := ");
     print_op(code->u.assign.right);
@@ -65,6 +93,7 @@ void print_ARI(InterCode code) {
 }
 
 void print_ADDR(InterCode code) {
+    assert(0);
     print_op(code->u.assign.left);
     fprintf(out, " := &");
     print_op(code->u.assign.right);
@@ -72,6 +101,7 @@ void print_ADDR(InterCode code) {
 }
 
 void print_DEREF(InterCode code) {
+    assert(0);
     print_op(code->u.assign.left);
     fprintf(out, " := *");
     print_op(code->u.assign.right);
@@ -79,6 +109,7 @@ void print_DEREF(InterCode code) {
 }
 
 void print_REF_ASSIGN(InterCode code) {
+    assert(0);
     fprintf(out, "*");
     print_op(code->u.assign.left);
     fprintf(out, " := ");

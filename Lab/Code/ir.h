@@ -95,6 +95,7 @@ void ir_Cond(TreeNode_t* root, Operand label_true, Operand label_false);
 char* ir_ID(TreeNode_t* root);
 int ir_TYPE(TreeNode_t* root);
 
+void printIR(InterCodes head, InterCodes tail, FILE* file_ir);
 
 #endif
 
