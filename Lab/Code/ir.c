@@ -691,3 +691,35 @@ void ir_Stmt(TreeNode_t* root, Type retType) {
     assert(0);
 
 }
+
+
+/* Local Definitions */
+FieldList ir_DefList(TreeNode_t* root, int inStruct, int offset) {
+    helper(root);
+    /* 
+    * DefList -> Def DefList 
+    * DefList -> e
+    */
+
+    assert(root->num_child == 2);
+
+    if(inStruct == 1) {
+        FieldList field = ir_Def(root->Tree_child[0], inStruct, offset); 
+        if(root->Tree_child[1] != NULL) {
+            FieldList cur = field;
+            while(cur->tail != NULL)
+                cur = cur->tail;
+            offset = cur->offset + cur->size;
+            FieldList next_field = ir_DefList(root->Tree_child[1], inStruct, offset);
+
+            cur->tail = next_field;
+        }
+        return field;
+    } else {
+        ir_Def(root->Tree_child[0], inStruct, offset);
+        if(root->Tree_child[1] != NULL) {
+            ir_DefList(root->Tree_child[1], inStruct, offset);
+        }
+        return NULL;
+    }
+}
