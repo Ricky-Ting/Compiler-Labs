@@ -739,3 +739,39 @@ FieldList ir_Def(TreeNode_t* root, int inStruct, int offset) {
 
     return ir_DecList(root->Tree_child[1], type, inStruct, offset);
 }
+
+
+FieldList ir_DecList(TreeNode_t* root, Type baseType, int inStruct, int offset) {
+    helper(root);
+    /* 
+    * DecList -> Dec
+    * DecList -> Dec COMMA DecList
+    */
+
+    assert(root->num_child == 1 || root->num_child == 3);
+
+    assert(root->Tree_child[0] != NULL);
+
+    if(inStruct == 1) {
+        FieldList field = ir_Dec(root->Tree_child[0], baseType, inStruct, offset);
+        offset += field->size; // TODO
+        field->tail = NULL;
+        if(root->num_child != 1) {
+            assert(root->Tree_child[2] != NULL);
+            FieldList next_field = ir_DecList(root->Tree_child[2], baseType, inStruct, offset);
+            FieldList cur = field;
+            while(cur->tail != NULL)
+                cur = cur->tail;
+            cur->tail = next_field; 
+        }
+        return field;
+    } else {
+        ir_Dec(root->Tree_child[0], baseType, inStruct, offset);
+        if(root->num_child != 1) {
+            assert(root->Tree_child[2] != NULL);
+            ir_DecList(root->Tree_child[2], baseType, inStruct, offset);
+        }
+        return NULL;
+
+    }
+}

@@ -79,6 +79,7 @@ void ir_Stmt(TreeNode_t* root, Type retType);
 /* Local Definitions */
 FieldList ir_DefList(TreeNode_t* root, int inStruct, int offset);
 FieldList ir_Def(TreeNode_t* root, int inStruct, int offset);
+FieldList ir_DecList(TreeNode_t* root, Type baseType, int inStruct, int offset);
 
 #endif
 
