@@ -1279,6 +1279,77 @@ void ir_Args(TreeNode_t* root) {
 }
 
 
+void ir_Cond(TreeNode_t* root, Operand label_true, Operand label_false) {
+    
+    if(root->num_child == 3) {
+        if(IS_EQUAL(root->Tree_child[1]->Tree_token, "RELOP")) {
+            Operand t1;
+            Operand t2;
+
+            t1 = call_Exp(root->Tree_child[0], t1).op;
+            t2 = call_Exp(root->Tree_child[2], t2).op;
+
+            InterCode code = myAlloc(sizeof(InterCode_t));
+            code->kind = CONDJMP;
+            code->u.condjmp.op1 = t1;
+            code->u.condjmp.op2 = t2;
+            code->u.condjmp.target = label_true;
+            snprintf(code->u.condjmp.relop, 55, "%s",root->Tree_child[1]->Tree_val);
+            append_code(code);
+
+            InterCode code2 = myAlloc(sizeof(InterCode_t));
+            code2->kind = GOTO;
+            code2->u.label.op = label_false;
+            append_code(code2);
+
+            return;
+        } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "AND")) {
+            Operand label1 = get_label();
+            ir_Cond(root->Tree_child[0], label1, label_false);
+
+            InterCode code = myAlloc(sizeof(InterCode_t));
+            code->kind = LABELSET;
+            code->u.label.op = label1;
+            append_code(code);
+
+            ir_Cond(root->Tree_child[2], label_true, label_false);
+
+            return;
+        } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "OR")) {
+            Operand label1 = get_label();
+            ir_Cond(root->Tree_child[0], label_true, label1);
+
+            InterCode code = myAlloc(sizeof(InterCode_t));
+            code->kind = LABELSET;
+            code->u.label.op = label1;
+            append_code(code);
+
+            ir_Cond(root->Tree_child[2], label_true, label_false);
+
+            return;
+        }
+    }
+
+    if(root->num_child == 2 && IS_EQUAL(root->Tree_child[0]->Tree_token, "NOT") ) {
+        ir_Cond(root->Tree_child[1], label_false, label_true);
+        return;
+    } 
 
 
+    //printf("Here\n");
+    Operand t1 = call_Exp(root, t1).op;
 
+    InterCode code = myAlloc(sizeof(InterCode_t));
+    code->kind = CONDJMP;
+    code->u.condjmp.op1 = t1;
+    code->u.condjmp.op2 = &OP_ZERO;
+    code->u.condjmp.target = label_true;
+    snprintf(code->u.condjmp.relop, 5, "!=");
+    append_code(code);
+
+    InterCode code2 = myAlloc(sizeof(InterCode_t));
+    code2->kind = GOTO;
+    code2->u.label.op = label_false;
+    append_code(code2);
+    
+}
