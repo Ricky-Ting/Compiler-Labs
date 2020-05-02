@@ -18,14 +18,18 @@ typedef InterCode_t* InterCode;
 typedef struct InterCodes_ InterCodes_t;
 typedef InterCodes_t* InterCodes;
 
+typedef struct expType_ expType_t;
+typedef expType_t* expType;
+
+
 struct Operand_ {
     enum { VARIABLE, TEMP, FUNCT, LABEL, CONSTANT} kind;
     enum MODE mode;
     enum { NORMAL, DEF, REF} print_mode;
     union {
-        int var_no;
-        int label;
-        int value;
+        int var_no;  // For VARIABLE, TEMP, FUNCT;
+        int label;   // For LABEL
+        int value;  // For CONSTANT
     } u;
 };
 
@@ -43,6 +47,14 @@ struct InterCode_ {
 };
 
 struct InterCodes_ { InterCode code; struct InterCodes_ *prev, *next; };
+
+struct expType_ {
+    Operand op;
+    Type type;
+};
+
+/* High-level Definitions */
+
 
 
 
