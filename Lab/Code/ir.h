@@ -93,6 +93,7 @@ void ir_Cond(TreeNode_t* root, Operand label_true, Operand label_false);
 
 /* Terminator */
 char* ir_ID(TreeNode_t* root);
+int ir_TYPE(TreeNode_t* root);
 
 
 #endif

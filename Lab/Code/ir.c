@@ -1359,3 +1359,14 @@ char* ir_ID(TreeNode_t* root) {
     helper(root);
     return root->Tree_val;
 }
+
+int ir_TYPE(TreeNode_t* root) {
+    helper(root);
+    if(IS_EQUAL(root->Tree_val, "int"))
+        return TYPE_INT;
+    else if(IS_EQUAL(root->Tree_val, "float")) 
+        return TYPE_FLOAT;
+    else 
+        assert(0);
+    return -1;
+}
