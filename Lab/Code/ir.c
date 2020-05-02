@@ -1353,3 +1353,9 @@ void ir_Cond(TreeNode_t* root, Operand label_true, Operand label_false) {
     append_code(code2);
     
 }
+
+/* Terminator */
+char* ir_ID(TreeNode_t* root) {
+    helper(root);
+    return root->Tree_val;
+}
