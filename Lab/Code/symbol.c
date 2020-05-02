@@ -50,7 +50,7 @@ void initSymbolTable() {
     }
     stack.top = 1;
     stack.area_tail[0] = NULL;
-    var_counter = 0;
+    var_counter = 1;
 }
 
 /* 初始化类型表 */

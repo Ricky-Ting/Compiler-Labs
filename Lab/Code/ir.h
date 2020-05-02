@@ -23,7 +23,7 @@ typedef expType_t* expType;
 
 
 struct Operand_ {
-    enum { VARIABLE, TEMP, FUNCT, LABEL, CONSTANT} kind;
+    enum { VARIABLE, TEMP, FUNCT, LABEL, CONSTANT, P} kind;
     enum MODE mode;
     enum { NORMAL, DEF, REF} print_mode;
     union {

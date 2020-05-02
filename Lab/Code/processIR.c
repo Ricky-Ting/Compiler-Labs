@@ -1,4 +1,5 @@
 #include "ir.h"
+#include "symbol.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,6 +7,15 @@
 
 
 FILE* out = NULL;
+int p_counter = 1;
+
+Operand get_p() {
+    Operand p = myAlloc(sizeof(Operand_t));
+    p->kind = P;
+    p->u.var_no = p_counter++;
+    p->print_mode = NORMAL;
+    return p;
+}
 
 /*
 void print_op(Operand op) {
@@ -38,6 +48,8 @@ void print_op(Operand op) {
             fprintf(out, "*t%d", op->u.var_no);
     } else if(op->kind == CONSTANT) {
         fprintf(out, "#%d", op->u.value);
+    } else if (op->kind == P){
+        fprintf(out, "p%d", op->u.var_no);
     } else {
         assert(0);
     }
@@ -57,11 +69,6 @@ void print_FUNCTION(InterCode code) {
 }
 
 void print_ASSIGN(InterCode code) {
-    // TODO
-    if(code->u.assign.left->print_mode == DEF) {
-        assert(0);
-    }
-
     print_op(code->u.assign.left);
     fprintf(out, " := ");
     print_op(code->u.assign.right);
@@ -69,6 +76,27 @@ void print_ASSIGN(InterCode code) {
 }
 
 void print_ARI(InterCode code) {
+
+    if(code->u.binop.result->print_mode == DEF) {
+
+        Operand p = get_p();
+        InterCode code1 = myAlloc(sizeof(InterCode_t));
+        code1->kind = code->kind;
+        code1->u.binop.result = p;
+        code1->u.binop.op1 = code->u.binop.op1;
+        code1->u.binop.op2 = code->u.binop.op2;
+
+        print_ARI(code1);
+
+        InterCode code2 = myAlloc(sizeof(InterCode_t));
+        code2->kind = ASSIGN;
+        code2->u.assign.left = code->u.binop.result;
+        code2->u.assign.right = p;
+        print_ASSIGN(code2);
+
+        return;
+    }
+
     print_op(code->u.binop.result);
     fprintf(out," := ");
     print_op(code->u.binop.op1);
