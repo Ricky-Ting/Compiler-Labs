@@ -276,3 +276,22 @@ void ir_ExtDef(TreeNode_t *root) {
     }
 }
 
+void ir_ExtDecList(TreeNode_t *root, Type baseType) {
+    helper(root);
+    /*
+    * ExtDecList -> VarDec
+    * ExtDecList -> VarDec COMMA ExtDecList
+    */
+   
+   assert(root->num_child == 1 || root->num_child == 3);
+   
+   assert(root->Tree_child[0] != NULL);
+   ir_VarDec(root->Tree_child[0], baseType, 0, 0); 
+
+   if(root->num_child == 1) 
+       return;
+       
+    assert(root->Tree_child[2] != NULL);
+    ir_ExtDecList(root->Tree_child[2], baseType);
+}
+

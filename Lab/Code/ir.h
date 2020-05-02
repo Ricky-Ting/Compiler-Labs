@@ -57,6 +57,7 @@ struct expType_ {
 void ir_Program(TreeNode_t* root, FILE* ir_file);
 void ir_ExtDefList(TreeNode_t *root);
 void ir_ExtDef(TreeNode_t *root);
+void ir_ExtDecList(TreeNode_t *root, Type baseType);
 
 
 
