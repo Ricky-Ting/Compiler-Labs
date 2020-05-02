@@ -295,3 +295,25 @@ void ir_ExtDecList(TreeNode_t *root, Type baseType) {
     ir_ExtDecList(root->Tree_child[2], baseType);
 }
 
+/* Specifiers */
+Type ir_Specifier(TreeNode_t *root) {
+    helper(root);
+    /*
+        Specifier -> TYPE
+        Specifier -> StructSpecifier
+    */
+    assert(root->num_child == 1);
+    assert(root->Tree_child[0] != NULL);
+    if(IS_EQUAL(root->Tree_child[0]->Tree_token, "TYPE")) {
+        int basic_type = ir_TYPE(root->Tree_child[0]);
+        if(basic_type == TYPE_INT) 
+            return &type_INT;
+        else 
+            return &type_FLOAT;
+    } else if(IS_EQUAL(root->Tree_child[0]->Tree_token, "StructSpecifier")) {
+        return ir_StructSpecifier(root->Tree_child[0]);
+    } else {
+        // Shouldn't reach here!!!
+        assert(0);
+    }
+}
