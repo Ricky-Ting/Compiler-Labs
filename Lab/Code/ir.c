@@ -386,3 +386,55 @@ char* ir_Tag(TreeNode_t* root) {
     // Tag -> ID
     return root->Tree_child[0]->Tree_val;
 }
+
+/* Declarators */
+Symbol ir_VarDec(TreeNode_t* root, Type baseType, int size, int inStruct) {
+    helper(root);
+    /* 
+    * VarDec -> ID
+    * VarDec -> VarDec LB INT RB
+    */
+
+    assert(root->num_child == 1 || root->num_child == 4);
+    
+    if(root->num_child == 1) {
+        assert(root->Tree_child[0] != NULL);
+        Type type = baseType;
+        
+        Symbol sym = myAlloc(sizeof(Symbol_t));
+        strncpy(sym->name, ir_ID(root->Tree_child[0]), 55);
+        sym->type = type;
+        sym->prev = sym->next = sym->area_prev = sym->area_next = NULL;
+        sym->mode = VALUE;
+        insertSymbol(sym);
+
+        if(inStruct == 0 && baseType->kind != BASIC) {
+            int sz = get_size(baseType);
+
+            InterCode code = myAlloc(sizeof(InterCode_t));
+            code->kind = DEC;
+            code->u.dec.op = get_op(sym->var_no);
+            code->u.dec.size = sz;
+            append_code(code);
+        } else if(inStruct == 2) {
+            InterCode code = myAlloc(sizeof(InterCode_t));
+            //printf("HERE\n");
+            code->kind = PARAM;
+            code->u.unary.op = get_op(sym->var_no);
+            if(sym->type->kind != BASIC)
+                sym->mode = ADDRESS;
+            append_code(code);
+        }
+
+        return sym;
+    } else {
+        assert(root->Tree_child[0] != NULL);
+        Type newType = myAlloc(sizeof(Type_t));
+        newType->kind = ARRAY;
+        newType->u.array.size = root->Tree_child[2]->val_UINT;
+        newType->u.array.elem = baseType;
+        newType->u.array.totalsize = newType->u.array.size * get_size(baseType);
+
+        return ir_VarDec(root->Tree_child[0], newType, size+1, inStruct);
+    }
+}
