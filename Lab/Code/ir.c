@@ -533,3 +533,17 @@ void ir_CompSt(TreeNode_t* root, Type retType) {
     }
     return;
 }
+
+void ir_StmtList(TreeNode_t* root, Type retType) {
+    helper(root);
+    /*
+    * StmtList -> Stmt StmtList
+    */
+
+    assert(root->num_child == 2);
+    assert(root->Tree_child[0] != NULL);
+    ir_Stmt(root->Tree_child[0], retType);
+    if(root->Tree_child[1] != NULL)
+        ir_StmtList(root->Tree_child[1], retType);
+    return;
+}
