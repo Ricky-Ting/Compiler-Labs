@@ -514,7 +514,7 @@ FieldList ir_VarList(TreeNode_t* root) {
 
     FieldList field = ir_ParamDec(root->Tree_child[0]);
 
-    //TODO 可以优化
+    
     if(root->num_child == 3) {
         assert(root->Tree_child[2] != NULL);
         FieldList next_field = ir_VarList(root->Tree_child[2]);
@@ -632,7 +632,7 @@ void ir_Stmt(TreeNode_t* root, Type retType) {
             Operand label1 = get_label();
             Operand label2 = get_label();
 
-            ir_Cond(root->Tree_child[2], label1, label2); // TODO
+            ir_Cond(root->Tree_child[2], label1, label2); 
 
             InterCode l1 = myAlloc(sizeof(InterCode_t));
             l1->kind = LABELSET;
@@ -655,7 +655,7 @@ void ir_Stmt(TreeNode_t* root, Type retType) {
             l1->u.label.op = label1;
             append_code(l1);
 
-            ir_Cond(root->Tree_child[2], label2, label3); // TODO
+            ir_Cond(root->Tree_child[2], label2, label3); 
 
             InterCode l2 = myAlloc(sizeof(InterCode_t));
             l2->kind = LABELSET;
@@ -688,7 +688,7 @@ void ir_Stmt(TreeNode_t* root, Type retType) {
         Operand label2 = get_label();
         Operand label3 = get_label();
 
-        ir_Cond(root->Tree_child[2], label1, label2); // TODO
+        ir_Cond(root->Tree_child[2], label1, label2);
 
         InterCode l1 = myAlloc(sizeof(InterCode_t));
         l1->kind = LABELSET;
@@ -785,7 +785,7 @@ FieldList ir_DecList(TreeNode_t* root, Type baseType, int inStruct, int offset) 
 
     if(inStruct == 1) {
         FieldList field = ir_Dec(root->Tree_child[0], baseType, inStruct, offset);
-        offset += field->size; // TODO
+        offset += field->size; 
         field->tail = NULL;
         if(root->num_child != 1) {
             assert(root->Tree_child[2] != NULL);
@@ -835,13 +835,11 @@ FieldList ir_Dec(TreeNode_t* root, Type baseType, int inStruct, int offset) {
     } else {
         
         if(root->num_child == 3) {
-            // TODO
             assert(sym->type->kind == BASIC);
 
             InterCode code = myAlloc(sizeof(InterCode_t));
         
             Operand t1 = call_Exp(root->Tree_child[2], 1).op;
-            //TODO a = *b;的情况
             code->kind = ASSIGN;
             code->u.assign.left = get_op(sym->var_no);
             code->u.assign.right = t1;
