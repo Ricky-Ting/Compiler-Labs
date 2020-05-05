@@ -27,8 +27,6 @@ int min(int a, int b) {
     return (a<b)?a:b;
 }
 
-
-
 char* get_name() {
     if(random_name[pos] == 'Z') {
         pos++;
