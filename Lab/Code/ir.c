@@ -110,7 +110,7 @@ int get_size(Type type) {
 }
 
 expType_t call_Exp(TreeNode_t* root, int needop) {
-    expType_t ret = ir_Exp(root, 1);
+    expType_t ret = ir_Exp(root, 1, NULL);
     if(needop && ret.op->mode == ADDRESS && ret.type->kind == BASIC) {
         Operand newop = myAlloc(sizeof(Operand_t));
 
@@ -126,6 +126,13 @@ expType_t call_Exp(TreeNode_t* root, int needop) {
     return ret;
 }
 
+expType_t call2_Exp(TreeNode_t* root, int needop, Operand res) {
+    if(res == NULL) {
+        return call_Exp(root, needop);
+    }
+    return ir_Exp(root, needop, res);
+}
+
 Operand to_temp(Operand op) {
     if(op->kind != TEMP) {
         Operand newop = get_temp();
@@ -137,6 +144,14 @@ Operand to_temp(Operand op) {
         return newop;
     }
     return op;
+}
+
+void assign(Operand left, Operand right) {
+    InterCode code = myAlloc(sizeof(InterCode_t));
+    code->kind = ASSIGN;
+    code->u.assign.left = left;
+    code->u.assign.right = right;
+    append_code(code);
 }
 
 
@@ -603,7 +618,7 @@ void ir_Stmt(TreeNode_t* root, Type retType) {
     if(root->num_child == 2) {
         // Stmt -> Exp SEMI;
         assert(root->Tree_child[0] != NULL);
-        ir_Exp(root->Tree_child[0], 0);
+        ir_Exp(root->Tree_child[0], 0, NULL);
         return;
     }
 
@@ -837,6 +852,11 @@ FieldList ir_Dec(TreeNode_t* root, Type baseType, int inStruct, int offset) {
         if(root->num_child == 3) {
             assert(sym->type->kind == BASIC);
 
+            Operand v = get_op(sym->var_no);
+
+            call2_Exp(root->Tree_child[2], 1, v);
+
+            /*
             InterCode code = myAlloc(sizeof(InterCode_t));
         
             Operand t1 = call_Exp(root->Tree_child[2], 1).op;
@@ -844,12 +864,13 @@ FieldList ir_Dec(TreeNode_t* root, Type baseType, int inStruct, int offset) {
             code->u.assign.left = get_op(sym->var_no);
             code->u.assign.right = t1;
             append_code(code);
+            */
         }
         return NULL;
     }
 }
 
-expType_t ir_Exp(TreeNode_t* root, int needop) {
+expType_t ir_Exp(TreeNode_t* root, int needop, Operand res_op) {
     helper(root);
     /*
     * Exp -> Exp ASSIGNOP Exp
@@ -875,13 +896,13 @@ expType_t ir_Exp(TreeNode_t* root, int needop) {
     */
 
     if(root->num_child == 1)
-        return ir_Exp1(root, needop);
+        return ir_Exp1(root, needop, res_op);
     if(root->num_child == 2)
-        return ir_Exp2(root, needop);
+        return ir_Exp2(root, needop, res_op);
     if(root->num_child == 3)
-        return ir_Exp3(root, needop);
+        return ir_Exp3(root, needop, res_op);
     if(root->num_child == 4)
-        return ir_Exp4(root, needop);
+        return ir_Exp4(root, needop, res_op);
     
     // Shound't reach here!!!
     //printf("%s\n", root->Tree_token);
@@ -891,7 +912,7 @@ expType_t ir_Exp(TreeNode_t* root, int needop) {
     assert(0);
 }
 
-expType_t ir_Exp1(TreeNode_t* root, int needop) {
+expType_t ir_Exp1(TreeNode_t* root, int needop, Operand res_op) {
     // Exp -> ID, Exp-> INT, Exp-> FLOAT
     assert(root->num_child == 1);
     assert(root->Tree_child[0] != NULL);
@@ -899,14 +920,13 @@ expType_t ir_Exp1(TreeNode_t* root, int needop) {
     if(IS_EQUAL(root->Tree_child[0]->Tree_token, "ID")) {
         // Exp -> ID
         // 只可能是BASIC ARRAY 或者 STRUCTURE
-        expType_t ret;
+        expType_t ret = {NULL, NULL};
 
         char name[55];
         strncpy(name, ir_ID(root->Tree_child[0]), 55);
         Symbol sym = findSymbol(name);
         assert(sym != NULL);
         ret.type = sym->type;
-        ret.op = NULL;
 
         if(needop == 0) 
             return ret;
@@ -914,7 +934,10 @@ expType_t ir_Exp1(TreeNode_t* root, int needop) {
         if(sym->type->kind == BASIC) {
             Operand op = get_op(sym->var_no);
             ret.op = op;
+            if(res_op != NULL) 
+                assign(res_op, op);
         } else if(sym->type->kind == ARRAY || sym->type->kind == STRUCTURE){
+            // TODO
             Operand v = get_op(sym->var_no);
             v->mode = ADDRESS;
             if(sym->mode == VALUE) {
@@ -945,6 +968,8 @@ expType_t ir_Exp1(TreeNode_t* root, int needop) {
         Operand op = get_constant(root->Tree_child[0]->val_UINT);
         ret.op = op;
         ret.type = &type_INT;
+        if(res_op != NULL)
+            assign(res_op, op);
         return ret;
     } 
 
@@ -956,7 +981,7 @@ expType_t ir_Exp1(TreeNode_t* root, int needop) {
 }
 
 
-expType_t ir_Exp2(TreeNode_t* root, int needop) {
+expType_t ir_Exp2(TreeNode_t* root, int needop, Operand res_op) {
     assert(root->num_child == 2);
     assert(root->Tree_child[0] != NULL);
     assert(root->Tree_child[1] != NULL);
@@ -965,7 +990,6 @@ expType_t ir_Exp2(TreeNode_t* root, int needop) {
         // Exp -> MINUS Exp
         expType_t ret = {&type_INT, NULL};
         Operand t1 = call_Exp(root->Tree_child[1], 1).op;
-        // 常量优化待考虑
 
         if(needop == 0) {
             return ret;
@@ -974,10 +998,17 @@ expType_t ir_Exp2(TreeNode_t* root, int needop) {
         if(t1->kind == CONSTANT) {
             t1->u.value = -t1->u.value;
             ret.op = t1;
+
+            if(res_op != NULL)
+                assign(res_op, t1);
             return ret;
         }
 
-        Operand res = get_temp();
+        Operand res;
+        if(res_op == NULL)
+            res = get_temp();
+        else 
+            res = res_op;
 
         InterCode code = myAlloc(sizeof(InterCode_t));
         code->kind = SUB;
@@ -998,7 +1029,11 @@ expType_t ir_Exp2(TreeNode_t* root, int needop) {
         Operand label1 = get_label();
         Operand label2 = get_label();
         
-        Operand place = get_temp();
+        Operand place;
+        if(res_op == NULL)
+            place = get_temp();
+        else 
+            place = res_op;
 
         InterCode code0 = myAlloc(sizeof(InterCode_t));
         code0->kind = ASSIGN;
@@ -1025,12 +1060,16 @@ expType_t ir_Exp2(TreeNode_t* root, int needop) {
         append_code(l2);
         
         ret.op = place;
+        if(res_op != NULL) {
+            assign(res_op, place);
+        }
+
         return ret;
     }
     assert(0);
 }
 
-expType_t ir_Exp4(TreeNode_t* root, int needop) {
+expType_t ir_Exp4(TreeNode_t* root, int needop, Operand res_op) {
     assert(root->num_child == 4);
     assert(root->Tree_child[0] != NULL);
     assert(root->Tree_child[1] != NULL);
@@ -1055,10 +1094,16 @@ expType_t ir_Exp4(TreeNode_t* root, int needop) {
             code->u.unary.op = t1;
             append_code(code);
             ret.op = &OP_ZERO;
+            if(res_op != NULL)
+                assign(res_op, &OP_ZERO);
         } else {
             ir_Args(root->Tree_child[2]);
 
-            Operand place = get_temp();
+            Operand place;
+            if(res_op == NULL)
+                place = get_temp();
+            else 
+                place = res_op;
 
             InterCode code = myAlloc(sizeof(InterCode_t));
             code->kind = CALL;
@@ -1081,7 +1126,7 @@ expType_t ir_Exp4(TreeNode_t* root, int needop) {
         // 不需要的情况 待优化
         expType_t ret = {&type_INT, NULL};
 
-        expType_t prev = ir_Exp(root->Tree_child[0], 1);
+        expType_t prev = ir_Exp(root->Tree_child[0], 1, NULL);
         Type type = prev.type;
         Operand place = get_temp();
         place->mode = ADDRESS;
@@ -1104,11 +1149,6 @@ expType_t ir_Exp4(TreeNode_t* root, int needop) {
             append_code(code);
         }
 
-        if(place->kind == VARIABLE) {
-            assert(0);
-            // TODO
-        }
-
 
         // TODO 改掉place
         InterCode code2 = myAlloc(sizeof(InterCode_t));
@@ -1120,13 +1160,23 @@ expType_t ir_Exp4(TreeNode_t* root, int needop) {
 
         ret.type = type->u.array.elem;
         ret.op = place;
+
+        if(res_op != NULL && ret.type->kind == BASIC) {
+            Operand newop = myAlloc(sizeof(Operand_t));
+            newop->kind = TEMP;
+            newop->mode = VALUE;
+            newop->print_mode = DEF;
+            newop->u.var_no = ret.op->u.var_no;
+            assign(res_op, newop);
+        }
+
         return ret;
     }
     assert(0);
 }
 
 
-expType_t ir_Exp3(TreeNode_t* root, int needop) {
+expType_t ir_Exp3(TreeNode_t* root, int needop, Operand res_op) {
     assert(root->num_child == 3);
     assert(root->Tree_child[0] != NULL);
     assert(root->Tree_child[1] != NULL);
@@ -1135,16 +1185,31 @@ expType_t ir_Exp3(TreeNode_t* root, int needop) {
     if(IS_EQUAL(root->Tree_child[0]->Tree_token, "Exp") && IS_EQUAL(root->Tree_child[2]->Tree_token, "Exp")) {
         // Exp (ASSIGNOP AND OR RELOP PLUS MINUS STAR DIV) Exp        
         if(IS_EQUAL(root->Tree_child[1]->Tree_token, "ASSIGNOP")) {
-            expType_t right_ret = call_Exp(root->Tree_child[2], 1);
+            int is_ID = 0;
+            Operand res = NULL;
+            if(root->Tree_child[0]->num_child == 1) {
+                assert(IS_EQUAL(root->Tree_child[0]->Tree_child[0]->Tree_token, "ID"));
+                is_ID = 1;
+                res = call_Exp(root->Tree_child[0], 1).op;
+            }
+
+            expType_t right_ret = call2_Exp(root->Tree_child[2], 1, res);
             if(right_ret.type->kind == BASIC) {
                 // 非数组赋值
-                Operand left = call_Exp(root->Tree_child[0], 1).op;
-
-                InterCode code = myAlloc(sizeof(InterCode_t));
-                code->kind = ASSIGN;
-                code->u.assign.left = left;
-                code->u.assign.right = right_ret.op;
-                append_code(code);
+                Operand left;
+                if(!is_ID) {
+                    left = call_Exp(root->Tree_child[0], 1).op;
+                    InterCode code = myAlloc(sizeof(InterCode_t));
+                    code->kind = ASSIGN;
+                    code->u.assign.left = left;
+                    code->u.assign.right = right_ret.op;
+                    append_code(code);
+                } else {
+                    left = res;
+                }
+                if(res_op != NULL) {
+                    assign(res_op, left);
+                }
                 return right_ret;
             } else {
                 expType_t left_ret = call_Exp(root->Tree_child[0], 1);
@@ -1200,7 +1265,11 @@ expType_t ir_Exp3(TreeNode_t* root, int needop) {
             Operand label1 = get_label();
             Operand label2 = get_label();
             
-            Operand place = get_temp();
+            Operand place;
+            if(res_op == NULL)
+                place = get_temp();
+            else 
+                place = res_op;
 
             InterCode code0 = myAlloc(sizeof(InterCode_t));
             code0->kind = ASSIGN;
@@ -1250,10 +1319,16 @@ expType_t ir_Exp3(TreeNode_t* root, int needop) {
                         assert(0);
                 }
                 ret.op = t1;
+                if(res_op != NULL)
+                    assign(res_op, t1);
                 return ret;
             }
 
-            Operand place = get_temp();
+            Operand place;
+            if(res_op == NULL)
+                place = get_temp();
+            else 
+                place = res_op;
             InterCode code = myAlloc(sizeof(InterCode_t));
             code->u.binop.op1 = t1;
             code->u.binop.op2 = t2;
@@ -1282,8 +1357,13 @@ expType_t ir_Exp3(TreeNode_t* root, int needop) {
         // Exp -> ID LP RP
         expType_t ret = {&type_INT, NULL};
 
-        Operand place = get_temp();
+        Operand place;
+        if(res_op == NULL)
+            place = get_temp();
+        else 
+            place = res_op;
         char func_name[55];
+
         strncpy(func_name, ir_ID(root->Tree_child[0]), 55);
         Symbol sym = findSymbol(func_name);
             
@@ -1311,13 +1391,13 @@ expType_t ir_Exp3(TreeNode_t* root, int needop) {
 
     if(IS_EQUAL(root->Tree_child[0]->Tree_token, "LP")) {
             // Exp -> LP Exp RP
-        return ir_Exp(root->Tree_child[1], 1);
+        return ir_Exp(root->Tree_child[1], 1, res_op);
     }
 
     if(IS_EQUAL(root->Tree_child[1]->Tree_token, "DOT")) {
         // Exp -> Exp DOT ID 
         expType_t ret;
-        expType_t prev = ir_Exp(root->Tree_child[0], 1);
+        expType_t prev = ir_Exp(root->Tree_child[0], 1, NULL);
         Type struct_type = prev.type;
 
         char field_name[55];
@@ -1344,6 +1424,16 @@ expType_t ir_Exp3(TreeNode_t* root, int needop) {
 
         ret.op = offset;
         ret.type = field->type;
+
+        if(res_op != NULL && ret.type->kind == BASIC) {
+            Operand newop = myAlloc(sizeof(Operand_t));
+            newop->kind = TEMP;
+            newop->mode = VALUE;
+            newop->print_mode = DEF;
+            newop->u.var_no = ret.op->u.var_no;
+            assign(res_op, newop);
+        }
+
         return ret;
     }
     assert(0);

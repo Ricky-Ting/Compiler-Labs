@@ -83,11 +83,11 @@ FieldList ir_DecList(TreeNode_t* root, Type baseType, int inStruct, int offset);
 FieldList ir_Dec(TreeNode_t* root, Type baseType, int inStruct, int offset);
 
 /* Expressions */
-expType_t ir_Exp(TreeNode_t* root, int needop);
-expType_t ir_Exp1(TreeNode_t* root, int needop);
-expType_t ir_Exp2(TreeNode_t* root, int needop);
-expType_t ir_Exp4(TreeNode_t* root, int needop);
-expType_t ir_Exp3(TreeNode_t* root, int needop);
+expType_t ir_Exp(TreeNode_t* root, int needop, Operand res_op);
+expType_t ir_Exp1(TreeNode_t* root, int needop, Operand res_op);
+expType_t ir_Exp2(TreeNode_t* root, int needop, Operand res_op);
+expType_t ir_Exp4(TreeNode_t* root, int needop, Operand res_op);
+expType_t ir_Exp3(TreeNode_t* root, int needop, Operand res_op);
 void ir_Args(TreeNode_t* root);
 void ir_Cond(TreeNode_t* root, Operand label_true, Operand label_false);
 
