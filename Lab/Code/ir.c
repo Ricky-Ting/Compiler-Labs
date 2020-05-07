@@ -1030,10 +1030,7 @@ expType_t ir_Exp2(TreeNode_t* root, int needop, Operand res_op) {
         Operand label2 = get_label();
         
         Operand place;
-        if(res_op == NULL)
-            place = get_temp();
-        else 
-            place = res_op;
+        place = get_temp();
 
         InterCode code0 = myAlloc(sizeof(InterCode_t));
         code0->kind = ASSIGN;
@@ -1063,7 +1060,6 @@ expType_t ir_Exp2(TreeNode_t* root, int needop, Operand res_op) {
         if(res_op != NULL) {
             assign(res_op, place);
         }
-
         return ret;
     }
     assert(0);
@@ -1266,10 +1262,8 @@ expType_t ir_Exp3(TreeNode_t* root, int needop, Operand res_op) {
             Operand label2 = get_label();
             
             Operand place;
-            if(res_op == NULL)
-                place = get_temp();
-            else 
-                place = res_op;
+            place = get_temp();
+
 
             InterCode code0 = myAlloc(sizeof(InterCode_t));
             code0->kind = ASSIGN;
@@ -1296,6 +1290,9 @@ expType_t ir_Exp3(TreeNode_t* root, int needop, Operand res_op) {
             append_code(l2);
 
             ret.op = place;
+            if(res_op != NULL) {
+                assign(res_op, place);
+            }
             return ret;
         }
         if(IS_EQUAL(root->Tree_child[1]->Tree_token, "PLUS") 
