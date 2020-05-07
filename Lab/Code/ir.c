@@ -1447,17 +1447,19 @@ void ir_Args(TreeNode_t* root) {
     assert(root->num_child == 1 || root->num_child == 3);
     assert(root->Tree_child[0] != NULL);
 
+    Operand t1 = call_Exp(root->Tree_child[0], 1).op;
+
     if(root->num_child == 3) {
         assert(root->Tree_child[2] != NULL);
         ir_Args(root->Tree_child[2]);
     }
 
-    Operand t1 = call_Exp(root->Tree_child[0], 1).op;
-
     InterCode code = myAlloc(sizeof(InterCode_t));
     code->kind = ARG;
     code->u.unary.op = t1;
     append_code(code);
+
+    
     return;
 }
 
