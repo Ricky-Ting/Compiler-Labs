@@ -1303,7 +1303,9 @@ expType_t ir_Exp3(TreeNode_t* root, int needop, Operand res_op) {
             Operand t1 = call_Exp(root->Tree_child[0], 1).op;
             Operand t2 = call_Exp(root->Tree_child[2], 1).op;
 
-            if(t1->kind == CONSTANT && t2->kind == CONSTANT) {
+            if(t1->kind == CONSTANT && t2->kind == CONSTANT 
+            	&& !(IS_EQUAL(root->Tree_child[1]->Tree_token, "DIV") && t2->u.value == 0)) {
+
                 if(IS_EQUAL(root->Tree_child[1]->Tree_token, "PLUS")) {
                         t1->u.value += t2->u.value;
                 } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "MINUS")) {
@@ -1311,6 +1313,7 @@ expType_t ir_Exp3(TreeNode_t* root, int needop, Operand res_op) {
                 } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "STAR")) {
                         t1->u.value *= t2->u.value;
                 } else if(IS_EQUAL(root->Tree_child[1]->Tree_token, "DIV")) {
+
                         t1->u.value /= t2->u.value;
                 } else {
                         assert(0);
