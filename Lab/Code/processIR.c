@@ -5,7 +5,7 @@
 #include <string.h>
 
 
-FILE* out = NULL;
+static FILE* out = NULL;
 
 void print_op(Operand op) {
     assert(op != NULL);
