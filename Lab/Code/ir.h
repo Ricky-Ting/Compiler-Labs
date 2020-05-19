@@ -94,5 +94,6 @@ int ir_TYPE(TreeNode_t* root);
 
 void printIR(InterCodes head, InterCodes tail, FILE* file);
 
+void ob_IR(InterCodes head, InterCodes tail, FILE* file_ir);
 
 #endif

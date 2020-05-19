@@ -13,6 +13,10 @@ int offset;
 int args;
 
 
+void ob_helper(char* s) {
+    //fprintf(out, "%s\n", s);
+}
+
 
 void init() {
     fprintf(out, ".data\n");
@@ -27,10 +31,10 @@ void init() {
     fprintf(out, "\t syscall\n");
     fprintf(out, "\t li $v0, 5\n");
     fprintf(out, "\t syscall\n");
-    fprintf(out, "\t jr $ra\n");
+    fprintf(out, "\t jr $ra\n\n");
 
-    fprintf(out, "\t write:\n");
-    fprintf(out, "\t li $v0, 1");
+    fprintf(out, "write:\n");
+    fprintf(out, "\t li $v0, 1\n");
     fprintf(out, "\t syscall\n");
     fprintf(out, "\t li $v0, 4\n");
     fprintf(out, "\t la $a0, _ret\n");
@@ -52,14 +56,14 @@ int get_off(Operand op) {
     if(op->kind == VARIABLE) {
         if(v_off[v] == -1) {
             v_off[v] = -offset;
-            offset -= 4;
+            offset += 4;
             fprintf(out, "\t addi $sp, $sp, -4\n");
         }
         return v_off[v];
     } else if(op->kind == TEMP) {
         if(t_off[v] == -1) {
             t_off[v] = -offset;
-            offset -= 4;
+            offset += 4;
             fprintf(out, "\t addi $sp, $sp, -4\n");
         }
         return t_off[v];
@@ -69,57 +73,49 @@ int get_off(Operand op) {
 }
 
 
-void ob_op(Operand op) {
-    assert(op != NULL);
-    if(op->kind == VARIABLE) {
-        fprintf(out, "v%d", op->u.var_no);
-    } else if(op->kind == TEMP) {
-        fprintf(out, "t%d", op->u.var_no);
-    } else if(op->kind == CONSTANT) {
-        fprintf(out, "#%d", op->u.value);
-    } else {
-        assert(0);
-    }
-}
 
 
 void ob_LABELSET(InterCode code) {
+    ob_helper("LABELSET");
     fprintf(out, "l%d :\n", code->u.label.op->u.label);
 }
 
 void ob_FUNCTION(InterCode code) {
+    ob_helper("FUNCTION");
     assert(code->u.unary.op->kind == FUNCT);
     if(code->u.unary.op->u.var_no == 0) 
         fprintf(out, "main: \n");
     else 
         fprintf(out, "f%d: \n", code->u.unary.op->u.var_no);
 
-    fprintf(out, "\t move $fp, $sp");
+    fprintf(out, "\t move $fp, $sp\n");
     fprintf(out, "\t sw $ra, 0($sp)\n");
-    fprintf(out, "\t addi $sp, $sp, -4");
+    fprintf(out, "\t addi $sp, $sp, -4\n");
     offset = 4;
     args = 0;
 }
 
 void ob_ASSIGN(InterCode code) {
-    //ob_op(code->u.assign.left);
-    //fprintf(out, " := ");
-    //ob_op(code->u.assign.right);
-    //fprintf(out,"\n");
+    ob_helper("ASSIGN");
+    get_off(code->u.assign.left);
 
-    fprintf(out, "\t lw, $t0, %d($fp)\n", get_off(code->u.assign.right));
-    fprintf(out, "\t lw, $t0, %d($fp)\n", get_off(code->u.assign.left));
+    Operand right = code->u.assign.right;
+    if(right->kind == CONSTANT) {
+        fprintf(out, "\t li $t0, %d\n", right->u.value);
+    } else {
+        fprintf(out, "\t lw, $t0, %d($fp)\n", get_off(code->u.assign.right));
+    }
+
+    fprintf(out, "\t sw, $t0, %d($fp)\n", get_off(code->u.assign.left));
 
 
 }
 
 void ob_ARI(InterCode code) {
-    //ob_op(code->u.binop.result);
-    //fprintf(out," := ");
-    //ob_op(code->u.binop.op1);
+    ob_helper("ARI");
+    get_off(code->u.binop.result);
     Operand op1 = code->u.binop.op1;
     Operand op2 = code->u.binop.op2;
-
     if(op1->kind == CONSTANT && op2->kind == CONSTANT) {
         int res;
         switch(code->kind) {
@@ -136,7 +132,7 @@ void ob_ARI(InterCode code) {
             res = op1->u.value / op2->u.value;
             break;
         default:
-        assert(0);
+            assert(0);
         }
 
         fprintf(out, "\t addi $t0, $zero, %d\n", res);
@@ -150,6 +146,7 @@ void ob_ARI(InterCode code) {
             op1 = op2;
             op2 = tmp_op;
         }
+        fprintf(out, "\t li $t2, %d\n", op2->u.value);
     }
 
     fprintf(out, "\t lw $t1, %d($fp)\n", get_off(op1));
@@ -161,36 +158,28 @@ void ob_ARI(InterCode code) {
 
     switch(code->kind) {
     case ADD:
-        fprintf(out, "\t add");
+        fprintf(out, "\t add $t0, $t1, $t2\n");
         break;
     case SUB:
-        fprintf(out, "\t sub");
+        fprintf(out, "\t sub $t0, $t1, $t2\n");
         break;
     case MUL:
-        fprintf(out, "\t mul");
+        fprintf(out, "\t mul $t0, $t1, $t2\n");
         break;
     case DIV:
-        fprintf(out, "\t div");
+        fprintf(out, "\t div $t0, $t1, $t2\n");
         break;
     default:
         assert(0);
     }
 
-    if(op2->kind == CONSTANT) {
-        fprintf(out, "i $t0, $t1, %d\n", op2->u.value);
-    } else {
-        fprintf(out, " $t0, $t1, $t2\n");
-    }
-
-    fprintf(out, "\t sw $t0, %d(fp)", get_off(code->u.binop.result));
+    fprintf(out, "\t sw $t0, %d($fp)\n", get_off(code->u.binop.result));
     return;
 }
 
 void ob_ADDR(InterCode code) {
-    //ob_op(code->u.assign.left);
-    //fprintf(out, " := &");
-    //ob_op(code->u.assign.right);
-    //fprintf(out, "\n");
+    ob_helper("ADDR");
+    get_off(code->u.assign.left);
     fprintf(out, "\t addi $t0, $zero, %d\n", get_off(code->u.assign.right));
     fprintf(out, "\t sw $t0, %d($fp)\n", get_off(code->u.assign.left));
 }
@@ -200,8 +189,10 @@ void ob_DEREF(InterCode code) {
     //fprintf(out, " := *");
     //ob_op(code->u.assign.right);
     //fprintf(out, "\n");
-
+    ob_helper("DEREF");
+    get_off(code->u.assign.left);
     fprintf(out, "\t lw $t1, %d($fp)\n", get_off(code->u.assign.right));
+    fprintf(out, "\t add $t1, $t1, $fp\n");
     fprintf(out, "\t lw $t0, 0($t1)\n");
     fprintf(out, "\t sw $t0, %d($fp)\n", get_off(code->u.assign.left));
 
@@ -213,13 +204,16 @@ void ob_REF_ASSIGN(InterCode code) {
     //fprintf(out, " := ");
     //ob_op(code->u.assign.right);
     //fprintf(out, "\n");
+    ob_helper("REF_ASSIGN");
 
     fprintf(out, "\t lw $t1, %d($fp)\n", get_off(code->u.assign.left));
+    fprintf(out, "\t add $t1, $t1, $fp\n");
     fprintf(out, "\t lw $t0, %d($fp)\n", get_off(code->u.assign.right));
     fprintf(out, "\t sw $t0, 0($t1)\n");
 }
 
 void ob_GOTO(InterCode code) {
+    ob_helper("GOTO");
     //fprintf(out, "GOTO l%d\n", code->u.label.op->u.label);
     fprintf(out, "\t j l%d\n", code->u.label.op->u.label);
 }
@@ -230,20 +224,20 @@ void ob_CONDJMP(InterCode code) {
     //fprintf(out, " %s ", code->u.condjmp.relop);
     //ob_op(code->u.condjmp.op2);
     //fprintf(out, " GOTO l%d\n", code->u.condjmp.target->u.label);
-
+    ob_helper("CONDJMP");
     Operand op1 = code->u.condjmp.op1;
     Operand op2 = code->u.condjmp.op2;
 
     if(op1->kind == CONSTANT) {
         fprintf(out, "\t addi $t1, $zero, %d\n", op1->u.value);
     } else {
-        fprintf(out, "\t lw $t1, %d(fp)\n",get_off(op1));
+        fprintf(out, "\t lw $t1, %d($fp)\n",get_off(op1));
     }
 
     if(op2->kind == CONSTANT) {
         fprintf(out, "\t addi $t2, $zero, %d\n", op2->u.value);
     } else {
-        fprintf(out, "\t lw $t2, %d(fp)\n",get_off(op2));
+        fprintf(out, "\t lw $t2, %d($fp)\n",get_off(op2));
     }
 
     if(IS_EQUAL(code->u.condjmp.relop, "==")) {
@@ -267,6 +261,7 @@ void ob_RETURN(InterCode code) {
     //fprintf(out, "RETURN ");
     //ob_op(code->u.unary.op);
     //fprintf(out, "\n");
+    ob_helper("RETURN");
 
     fprintf(out, "\t lw $v0, %d($fp)\n", get_off(code->u.unary.op));
     fprintf(out, "\t lw $ra, 0($fp)\n");
@@ -280,25 +275,37 @@ void ob_DEC(InterCode code) {
     //fprintf(out, "DEC ");
     //ob_op(code->u.dec.op);
     //fprintf(out, " %d\n", code->u.dec.size);
+    ob_helper("DEC");
     int v = code->u.dec.op->u.var_no;
 
-    v_off[v] = -offset;
-    fprintf(out, "\t subi $sp, $sp, %d\n", code->u.dec.size);
+    v_off[v] = -offset - code->u.dec.size + 4;
+    fprintf(out, "\t addi $sp, $sp, %d\n", -code->u.dec.size);
     offset += code->u.dec.size;
 
 }
 
 void ob_ARG(InterCode code) {
+    ob_helper("ARG");
     //fprintf(out, "ARG ");
     //ob_op(code->u.unary.op);
     //fprintf(out, "\n");
 
-    args++;
-    int v = code->u.unary.op->u.var_no;
-    v_off[v] = args*4 + 4;
+    Operand op = code->u.unary.op;
+
+    if(op->kind == CONSTANT) {
+        fprintf(out, "\t addi $t1, $zero, %d\n", op->u.value);
+    } else {
+        fprintf(out, "\t lw $t1, %d($fp)\n", get_off(code->u.unary.op));
+    }
+
+    fprintf(out, "\t sw $t1, 0($sp)\n");
+    fprintf(out, "\t addi $sp, $sp, -4\n");
+
+    
 }
 
 void ob_CALL(InterCode code) {
+    ob_helper("CALL");
     //ob_op(code->u.assign.left);
     //assert(code->u.assign.right->kind == FUNCT);
     //if(code->u.assign.right->u.var_no == 0) {
@@ -306,6 +313,9 @@ void ob_CALL(InterCode code) {
     //} else {
     //    fprintf(out, " := CALL f%d\n", code->u.assign.right->u.var_no);
     //}
+
+    fprintf(out, "\t sw $fp, 0($sp)\n");
+    fprintf(out, "\t addi $sp, $sp, -4\n");
 
     if(code->u.assign.right->u.var_no == 0) {
         fprintf(out, "\t jal main\n");
@@ -321,23 +331,18 @@ void ob_CALL(InterCode code) {
 }
 
 void ob_PARAM(InterCode code) {
+    ob_helper("PARAM");
     //fprintf(out, "PARAM ");
     //ob_op(code->u.unary.op);
     //fprintf(out, "\n");
 
-    Operand op = code->u.unary.op;
-
-    if(op->kind == CONSTANT) {
-        fprintf(out, "\t addi t1, $zero, %d\n", op->u.value);
-    } else {
-        fprintf(out, "\t lw t1, %d($fp)\n", get_off(code->u.unary.op));
-    }
-
-    fprintf(out, "\t sw $t1, 0($sp)\n");
-    fprintf(out, "\t addi $sp, $sp, -4\n");
+    args++;
+    int v = code->u.unary.op->u.var_no;
+    v_off[v] = args*4 + 4;
 }
 
 void ob_READ(InterCode code) {
+    ob_helper("READ");
     fprintf(out, "\t jal read\n");
 
     get_off(code->u.unary.op);
@@ -347,8 +352,9 @@ void ob_READ(InterCode code) {
 }
 
 void ob_WRITE(InterCode code) {
+    ob_helper("WRITE");
     get_off(code->u.unary.op);
-    fprintf(out, "lw $a0, %d($fp)\n", get_off(code->u.unary.op));
+    fprintf(out, "\t lw $a0, %d($fp)\n", get_off(code->u.unary.op));
 
     fprintf(out, "\t jal write\n");
 }
