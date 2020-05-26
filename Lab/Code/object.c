@@ -135,7 +135,7 @@ void ob_ARI(InterCode code) {
             assert(0);
         }
 
-        fprintf(out, "\t addi $t0, $zero, %d\n", res);
+        fprintf(out, "\t li $t0, %d\n", res);
         fprintf(out, "\t sw $t0, %d($fp)\n", get_off(code->u.binop.result));
         return;
     }
@@ -180,7 +180,7 @@ void ob_ARI(InterCode code) {
 void ob_ADDR(InterCode code) {
     ob_helper("ADDR");
     get_off(code->u.assign.left);
-    fprintf(out, "\t addi $t0, $zero, %d\n", get_off(code->u.assign.right));
+    fprintf(out, "\t li $t0, %d\n", get_off(code->u.assign.right));
     fprintf(out, "\t sw $t0, %d($fp)\n", get_off(code->u.assign.left));
 }
 
@@ -229,13 +229,13 @@ void ob_CONDJMP(InterCode code) {
     Operand op2 = code->u.condjmp.op2;
 
     if(op1->kind == CONSTANT) {
-        fprintf(out, "\t addi $t1, $zero, %d\n", op1->u.value);
+        fprintf(out, "\t li $t1, %d\n", op1->u.value);
     } else {
         fprintf(out, "\t lw $t1, %d($fp)\n",get_off(op1));
     }
 
     if(op2->kind == CONSTANT) {
-        fprintf(out, "\t addi $t2, $zero, %d\n", op2->u.value);
+        fprintf(out, "\t li $t2, %d\n", op2->u.value);
     } else {
         fprintf(out, "\t lw $t2, %d($fp)\n",get_off(op2));
     }
@@ -293,7 +293,7 @@ void ob_ARG(InterCode code) {
     Operand op = code->u.unary.op;
 
     if(op->kind == CONSTANT) {
-        fprintf(out, "\t addi $t1, $zero, %d\n", op->u.value);
+        fprintf(out, "\t li $t1, %d\n", op->u.value);
     } else {
         fprintf(out, "\t lw $t1, %d($fp)\n", get_off(code->u.unary.op));
     }
