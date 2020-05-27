@@ -14,7 +14,9 @@ int args;
 
 
 void ob_helper(char* s) {
-    //fprintf(out, "%s\n", s);
+    #ifdef IR_DEBUG
+        fprintf(out, "%s\n", s);
+    #endif
 }
 
 
@@ -116,45 +118,17 @@ void ob_ARI(InterCode code) {
     get_off(code->u.binop.result);
     Operand op1 = code->u.binop.op1;
     Operand op2 = code->u.binop.op2;
-    if(op1->kind == CONSTANT && op2->kind == CONSTANT) {
-        int res;
-        switch(code->kind) {
-        case ADD:
-            res = op1->u.value + op2->u.value;
-            break;
-        case SUB:
-            res = op1->u.value - op2->u.value;
-            break;
-        case MUL:
-            res = op1->u.value * op2->u.value;
-            break;
-        case DIV:
-            res = op1->u.value / op2->u.value;
-            break;
-        default:
-            assert(0);
-        }
-
-        fprintf(out, "\t li $t0, %d\n", res);
-        fprintf(out, "\t sw $t0, %d($fp)\n", get_off(code->u.binop.result));
-        return;
+    if(op1->kind == CONSTANT) {
+        fprintf(out, "\t li $t1, %d\n", op1->u.value);
+    } else {
+        fprintf(out, "\t lw $t1, %d($fp)\n", get_off(op1));
     }
 
-    if(op1->kind == CONSTANT || op2->kind == CONSTANT) {
-        if(op1->kind == CONSTANT) {
-            Operand tmp_op = op1;
-            op1 = op2;
-            op2 = tmp_op;
-        }
+    if(op2->kind == CONSTANT) {
         fprintf(out, "\t li $t2, %d\n", op2->u.value);
-    }
-
-    fprintf(out, "\t lw $t1, %d($fp)\n", get_off(op1));
-
-    if(op2->kind != CONSTANT) {
+    } else {
         fprintf(out, "\t lw $t2, %d($fp)\n", get_off(op2));
     }
-
 
     switch(code->kind) {
     case ADD:

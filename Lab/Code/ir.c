@@ -194,7 +194,9 @@ void ir_Program(TreeNode_t* root, FILE* ir_file) {
         ir_ExtDefList(root->Tree_child[0]);
 
     ob_IR(head, tail, ir_file);
-    //printIR(head, tail, ir_file);
+    #ifdef IR_DEBUG
+        printIR(head, tail, ir_file);
+    #endif
     //showFunc(); // 打印所有未定义函数 Not required in Lab3
     return;
 }

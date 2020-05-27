@@ -5,6 +5,8 @@
 #include "Tree.h"
 #include "symbol.h"
 
+//#define IR_DEBUG
+
 #define TYPE_INT 0
 #define TYPE_FLOAT 1
 
