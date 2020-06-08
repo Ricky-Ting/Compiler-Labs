@@ -59,14 +59,16 @@ int get_off(Operand op) {
         if(v_off[v] == -1) {
             v_off[v] = -offset;
             offset += 4;
-            fprintf(out, "\t addi $sp, $sp, -4\n");
+            //fprintf(out, "\t addi $sp, $sp, -4\n");
+            fprintf(out, "\t addi $sp, $fp, %d\n", -offset);
         }
         return v_off[v];
     } else if(op->kind == TEMP) {
         if(t_off[v] == -1) {
             t_off[v] = -offset;
             offset += 4;
-            fprintf(out, "\t addi $sp, $sp, -4\n");
+            //fprintf(out, "\t addi $sp, $sp, -4\n");
+            fprintf(out, "\t addi $sp, $fp, %d\n", -offset);
         }
         return t_off[v];
     } else {
@@ -92,8 +94,9 @@ void ob_FUNCTION(InterCode code) {
 
     fprintf(out, "\t move $fp, $sp\n");
     fprintf(out, "\t sw $ra, 0($sp)\n");
-    fprintf(out, "\t addi $sp, $sp, -4\n");
     offset = 4;
+    //fprintf(out, "\t addi $sp, $sp, -4\n");
+    fprintf(out, "\t addi $sp, $fp, %d\n", -offset);
     args = 0;
 }
 
