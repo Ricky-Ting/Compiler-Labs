@@ -105,10 +105,10 @@ void ob_ASSIGN(InterCode code) {
     if(right->kind == CONSTANT) {
         fprintf(out, "\t li $t0, %d\n", right->u.value);
     } else {
-        fprintf(out, "\t lw, $t0, %d($fp)\n", get_off(code->u.assign.right));
+        fprintf(out, "\t lw $t0, %d($fp)\n", get_off(code->u.assign.right));
     }
 
-    fprintf(out, "\t sw, $t0, %d($fp)\n", get_off(code->u.assign.left));
+    fprintf(out, "\t sw $t0, %d($fp)\n", get_off(code->u.assign.left));
 
 
 }
