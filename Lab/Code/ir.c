@@ -835,6 +835,12 @@ FieldList ir_Dec(TreeNode_t* root, Type baseType, int inStruct, int offset) {
             code->u.assign.left = get_op(sym->var_no);
             code->u.assign.right = t1;
             append_code(code);
+        } else {
+            InterCode code = myAlloc(sizeof(InterCode_t));
+            code->kind = ASSIGN;
+            code->u.assign.left = get_op(sym->var_no);
+            code->u.assign.right = &OP_ZERO;
+            append_code(code);
         }
         return NULL;
     }
