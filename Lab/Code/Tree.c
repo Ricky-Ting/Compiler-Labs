@@ -14,7 +14,7 @@ TreeNode_t* newTreeNode(char* Tree_token, char* Tree_val, int Tree_lineno) {
     }
     //ret->Tree_token = Tree_token;
     //ret->Tree_val = Tree_val;
-    strncpy(ret->Tree_token, Tree_token, 80);
+    strncpy(ret->Tree_token, Tree_token, 55);
     if(Tree_val != NULL)
         strcpy(ret->Tree_val, Tree_val);
     ret->Tree_lineno = Tree_lineno;

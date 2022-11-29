@@ -10,6 +10,9 @@ Symbol typeTable[HASH_TABLE_SZ+1]; // For struct type
 
 Node FuncHead;
 
+static int var_counter = 1;
+static int func_counter = 1;
+
 /* 为了实现作用域 */
 struct {
     Symbol arr[MAX_RECUR];
@@ -25,7 +28,8 @@ unsigned int hash_pjw(char* name) {
     unsigned int val = 0, i;
     for (; *name; ++name) {
         val = (val<<2) + *name;
-        if (i = val & ~HASH_TABLE_SZ)
+        i = val;
+        if (i & ~HASH_TABLE_SZ)
             val = (val ^ (i >> 12)) & HASH_TABLE_SZ;
     }
     return val;
@@ -46,6 +50,7 @@ void initSymbolTable() {
     }
     stack.top = 1;
     stack.area_tail[0] = NULL;
+    var_counter = 0;
 }
 
 /* 初始化类型表 */
@@ -64,6 +69,14 @@ void insertSymbol(Symbol sym) {
             fprintf(stderr, "Array size is %d\n", sym->type->u.array.size);
         }
     #endif
+
+    if(sym->type->kind == FUNC) {
+        sym->var_no = func_counter++;
+    } else {
+        sym->var_no = var_counter++;
+    }
+
+    
 
     // 确定在哪个slot
     int slot = hash_pjw(sym->name);

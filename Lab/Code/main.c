@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "Tree.h"
-#include "sdt.h"
+#include "ir.h"
 
 extern FILE* yyin;
 extern int yylex(void);
@@ -12,8 +12,9 @@ extern void yyparse(void);
 extern TreeNode_t* getRoot();
 
 int main(int argc, char** argv) {
-    if (argc <= 1) return 1;
+    if (argc <= 2) return 1;
     FILE* f = fopen(argv[1], "r");
+    FILE* ir_file = fopen(argv[2], "w");
     if (!f) {
         perror(argv[1]);
         return 1;
@@ -21,6 +22,6 @@ int main(int argc, char** argv) {
     yyrestart(f);
     yyparse();
     //printAST();
-    sdt_Program(getRoot());
+    ir_Program(getRoot(), ir_file);
     return 0;
 }

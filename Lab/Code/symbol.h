@@ -23,11 +23,11 @@ struct Type_ {
         // 基本类型
         int basic;
         // 数组类型信息包括元素类型与数组大小构成
-        struct { Type elem; int size; } array;
+        struct { Type elem; int size; int totalsize; } array;
         // 结构体类型信息是一个链表
         FieldList structure;
         // 函数类型信息由返回值类型和参数类型构成
-        struct { Type ret; FieldList params;} func;
+        struct { Type ret; FieldList params; } func;
     } u;
 };
 
@@ -35,13 +35,18 @@ struct FieldList_ {
     char name[55]; // 域的名字
     Type type; // 域的类型
     FieldList tail; // 下一个域
+    int offset; 
+    int totalsize;
+    int size;
 };
 
+enum MODE {VALUE, ADDRESS};
 
 struct Symbol_ {
     char name[55];
     Type type;
-    int lineno;
+    int var_no;
+    enum MODE mode;
     Symbol prev;
     Symbol next;
     Symbol area_prev;

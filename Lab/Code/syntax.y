@@ -15,6 +15,7 @@
     unsigned type_uint;
     float type_float;
     char type_char[55];
+    char relop[55];
     TreeNode_t* type_tree;
 }
 
@@ -23,7 +24,7 @@
 %token <type_char> TYPE
 %token <type_char> ID
 %token SEMI COMMA ASSIGNOP
-%token RELOP
+%token <relop> RELOP
 %token PLUS MINUS STAR DIV 
 %token AND OR DOT NOT
 %token LP RP LB RB LC RC
@@ -331,7 +332,7 @@ Exp : Exp ASSIGNOP Exp                          {
     | Exp RELOP Exp                             {
                                                     $$ = newTreeNode("Exp", NULL, @$.first_line);
                                                     insertTreeNode($$, $1);
-                                                    insertTreeNode($$, newTreeNode("RELOP", NULL, 0));
+                                                    insertTreeNode($$, newTreeNode("RELOP", $2, 0));
                                                     insertTreeNode($$, $3);
                                                 }
     | Exp PLUS Exp                              {
